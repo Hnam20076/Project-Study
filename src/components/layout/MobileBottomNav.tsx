@@ -1,7 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Calendar, BookOpen, Network, Globe2, GraduationCap, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { vi } from '@/i18n/vi'
 
 const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },

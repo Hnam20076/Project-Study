@@ -109,7 +109,8 @@ export const KnowledgeCanvas: React.FC<Props> = ({
   )
 
   const handleDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (_: any, node: any) => {
       onNodeDragStop(node.id, node.position.x, node.position.y)
     },
     [onNodeDragStop]

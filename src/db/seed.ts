@@ -9,10 +9,8 @@ import {
   knowledgeNodeRepo,
   knowledgeEdgeRepo,
   questionRepo,
-  examAttemptRepo,
   formulaRepo,
 } from './repositories'
-import { db } from './database'
 
 // Cờ kiểm tra đã seed chưa (lưu localStorage thay vì IndexedDB để kiểm tra nhanh)
 const SEED_KEY = 'study_os_seeded_v3'
@@ -578,7 +576,7 @@ async function seedDemoData(): Promise<void> {
   })
 
   // === M4: Ngân hàng câu hỏi mẫu (Kỹ thuật chuẩn xác) ===
-  const q1 = await questionRepo.create({
+  await questionRepo.create({
     subjectId: mathSubject.id,
     topicId: chapter1.id,
     type: 'single',
@@ -598,7 +596,7 @@ async function seedDemoData(): Promise<void> {
     isDemo: true,
   })
 
-  const q2 = await questionRepo.create({
+  await questionRepo.create({
     subjectId: mathSubject.id,
     topicId: chapter1.id,
     type: 'single',
@@ -618,7 +616,7 @@ async function seedDemoData(): Promise<void> {
     isDemo: true,
   })
 
-  const q3 = await questionRepo.create({
+  await questionRepo.create({
     subjectId: electronicsSubject.id,
     type: 'single',
     prompt: "Cho mạch phân áp gồm nguồn $V_s = 12\\text{V}$ và hai điện trở nối tiếp $R_1 = 4\\text{k}\\Omega$, $R_2 = 8\\text{k}\\Omega$. Điện áp rơi trên điện trở $R_2$ là:",
@@ -637,7 +635,7 @@ async function seedDemoData(): Promise<void> {
     isDemo: true,
   })
 
-  const q4 = await questionRepo.create({
+  await questionRepo.create({
     subjectId: electronicsSubject.id,
     type: 'single',
     prompt: "Mạch RC nối tiếp gồm $R = 10\\text{k}\\Omega$ và $C = 100\\mu\\text{F}$. Hằng số thời gian $\\tau$ của mạch là:",
@@ -656,7 +654,7 @@ async function seedDemoData(): Promise<void> {
     isDemo: true,
   })
 
-  const q5 = await questionRepo.create({
+  await questionRepo.create({
     subjectId: electronicsSubject.id,
     type: 'single',
     prompt: "Trở kháng phức của tụ điện có điện dung $C$ ở tần số góc $\\omega$ được biểu diễn là:",
