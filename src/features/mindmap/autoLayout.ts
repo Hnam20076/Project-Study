@@ -88,7 +88,7 @@ export function applyAutoLayout(
 ): MindMapNodeData[] {
   if (nodes.length <= 1) return nodes
 
-  const { roots, nodeMap } = buildHierarchy(nodes, edges)
+  const { roots } = buildHierarchy(nodes, edges)
   const posMap = new Map<string, { x: number; y: number }>()
 
   if (direction === 'horizontal') {

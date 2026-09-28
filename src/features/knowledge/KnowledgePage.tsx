@@ -21,7 +21,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { KnowledgeNode, KnowledgeEdge, KnowledgeRelationKind, KnowledgeDifficulty } from '@/types'
+import type { KnowledgeNode, KnowledgeRelationKind } from '@/types'
 import type { PathResult } from './pathfinding'
 
 const KnowledgeContent: React.FC = () => {

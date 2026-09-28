@@ -6,7 +6,6 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
   type Connection,
   type Edge,
   type Node,
@@ -24,11 +23,9 @@ import {
   FileCheck,
   Undo2,
   Redo2,
-  GitFork,
   ArrowRight,
   ArrowDown,
   CircleDot,
-  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
@@ -350,7 +347,8 @@ export const MindMapCanvas: React.FC<Props> = ({ mindmap, onSave }) => {
 
   // Khi kéo thả node dừng lại, lưu vị trí
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (_: any, node: any) => {
       const updatedNodes = internalNodes.map(n =>
         n.id === node.id ? { ...n, x: node.position.x, y: node.position.y } : n
       )
@@ -428,7 +426,7 @@ export const MindMapCanvas: React.FC<Props> = ({ mindmap, onSave }) => {
   // Chuyển thành note checklist
   const handleConvertToChecklist = async () => {
     try {
-      const pageId = await convertMindMapToNotePage(mindmap)
+      await convertMindMapToNotePage(mindmap)
       toast.success(vi.mindmap.noteCreatedSuccess)
       navigate(`/notes`)
     } catch (err) {

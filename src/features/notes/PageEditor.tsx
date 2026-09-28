@@ -115,7 +115,7 @@ export function PageEditor({ pageId }: Props) {
       autosave(pageId, html, title)
     },
     editorProps: {
-      handlePaste: (view, event) => {
+      handlePaste: (_view, event) => {
         // Xử lý paste ảnh
         const items = event.clipboardData?.items
         if (!items) return false
