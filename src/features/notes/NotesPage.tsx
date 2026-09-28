@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ChevronRight, ChevronDown, BookOpen,
-  FileText, Trash2, GripVertical, Edit2, Search
+  FileText, Trash2, Edit2, Search
 } from 'lucide-react'
 import { notebookRepo, sectionRepo, pageRepo } from '@/db/repositories'
 import { getAllSections } from '@/db/sectionHelpers'
@@ -412,11 +412,10 @@ function NotebookTree({
         )}
       </div>
 
-      {/* GripVertical icon - gợi ý drag (Phase sau mới implement drag) */}
+      {/* Gợi ý drag-to-sort (Phase sau) */}
       <div className="px-3 py-2 border-t border-slate-200 dark:border-dark-border">
-        <div className="flex items-center gap-1 text-xs text-slate-400">
-          <GripVertical className="w-3 h-3" />
-          <span>Kéo thả để sắp xếp (sắp ra mắt)</span>
+        <div className="text-xs text-slate-400">
+          ⠿ Kéo thả để sắp xếp (sắp ra mắt)
         </div>
       </div>
     </div>
@@ -426,7 +425,6 @@ function NotebookTree({
 // Trang chính Notes
 function NotesContent() {
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [sidebarWidth, setSidebarWidth] = useState(260)
   const [isResizing, setIsResizing] = useState(false)
 
@@ -462,9 +460,8 @@ function NotesContent() {
       >
         <NotebookTree
           selectedPageId={selectedPageId}
-          onSelectPage={(pageId, sectionId) => {
+          onSelectPage={(pageId, _sectionId) => {
             setSelectedPageId(pageId)
-            setSelectedSectionId(sectionId)
           }}
         />
       </div>
@@ -497,9 +494,8 @@ function NotesContent() {
         <div className="md:hidden fixed inset-0 bg-white dark:bg-dark-surface z-10">
           <NotebookTree
             selectedPageId={selectedPageId}
-            onSelectPage={(pageId, sectionId) => {
+            onSelectPage={(pageId, _sectionId) => {
               setSelectedPageId(pageId)
-              setSelectedSectionId(sectionId)
             }}
           />
         </div>

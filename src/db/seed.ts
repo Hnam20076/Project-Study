@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import {
   subjectRepo,
   topicRepo,
@@ -32,8 +31,6 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
 }
 
 async function seedDemoData(): Promise<void> {
-  const now = new Date()
-  const demoId = (suffix: string) => `demo-${suffix}-${uuidv4().slice(0, 8)}`
 
   // === Subjects ===
   const mathSubject = await subjectRepo.create({
@@ -277,6 +274,4 @@ async function seedDemoData(): Promise<void> {
     await scheduleRepo.create(schedule)
   }
 
-  void now
-  void demoId
 }

@@ -64,7 +64,7 @@ export const subjectRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.subjects.where('isDemo').equals(1).delete()
+    await db.subjects.filter(item => item.isDemo === true).delete()
   },
 }
 
@@ -101,7 +101,7 @@ export const topicRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.topics.where('isDemo').equals(1).delete()
+    await db.topics.filter(item => item.isDemo === true).delete()
   },
 }
 
@@ -146,7 +146,7 @@ export const linkRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.links.where('isDemo').equals(1).delete()
+    await db.links.filter(item => item.isDemo === true).delete()
   },
 }
 
@@ -179,7 +179,7 @@ export const scheduleRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.schedules.where('isDemo').equals(1).delete()
+    await db.schedules.filter(item => item.isDemo === true).delete()
   },
 }
 
@@ -220,7 +220,7 @@ export const notebookRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.notebooks.where('isDemo').equals(1).delete()
+    await db.notebooks.filter(item => item.isDemo === true).delete()
   },
 
   async getMaxOrder(): Promise<number> {
@@ -263,7 +263,7 @@ export const sectionRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.sections.where('isDemo').equals(1).delete()
+    await db.sections.filter(item => item.isDemo === true).delete()
   },
 
   async getMaxOrder(notebookId: string): Promise<number> {
@@ -318,7 +318,7 @@ export const pageRepo = {
   },
 
   async deleteDemoData(): Promise<void> {
-    await db.pages.where('isDemo').equals(1).delete()
+    await db.pages.filter(item => item.isDemo === true).delete()
   },
 
   async getMaxOrder(sectionId: string): Promise<number> {

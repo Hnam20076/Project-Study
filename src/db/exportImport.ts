@@ -1,14 +1,5 @@
 import { z } from 'zod'
 import type { ExportData } from '@/types'
-import {
-  subjectRepo,
-  topicRepo,
-  linkRepo,
-  scheduleRepo,
-  notebookRepo,
-  sectionRepo,
-  pageRepo,
-} from './repositories'
 import { db } from './database'
 
 // Zod schema để validate dữ liệu nhập
@@ -167,14 +158,6 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.pages.length > 0) await db.pages.bulkAdd(parsed.pages as never[])
     if (parsed.noteVersions.length > 0) await db.noteVersions.bulkAdd(parsed.noteVersions as never[])
   })
-
-  void subjectRepo
-  void topicRepo
-  void linkRepo
-  void scheduleRepo
-  void notebookRepo
-  void sectionRepo
-  void pageRepo
 }
 
 /**

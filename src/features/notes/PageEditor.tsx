@@ -19,8 +19,8 @@ import TextAlign from '@tiptap/extension-text-align'
 import Typography from '@tiptap/extension-typography'
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
-  Code, Link2, Heading1, Heading2, Heading3, List, ListOrdered,
-  CheckSquare, Quote, Code2, Table as TableIcon, Image as ImageIcon,
+  Code, Heading1, Heading2, Heading3, List, ListOrdered,
+  CheckSquare, Quote, Code2, Table as TableIcon,
   Undo, Redo, Clock, History
 } from 'lucide-react'
 import DOMPurify from 'dompurify'
@@ -129,7 +129,7 @@ export function PageEditor({ pageId }: Props) {
             const reader = new FileReader()
             reader.onload = (e) => {
               const base64 = e.target?.result as string
-              if (base64 && view.state) {
+              if (base64) {
                 editor?.chain().focus().setImage({ src: base64 }).run()
               }
             }
@@ -186,14 +186,7 @@ export function PageEditor({ pageId }: Props) {
     autosave(pageId, editor?.getHTML() ?? '', newTitle)
   }
 
-  // Phím tắt Ctrl+N tạo trang (đã xử lý ở tầng trên)
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      // Ctrl+Z và Ctrl+Shift+Z được xử lý bởi TipTap natively
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [])
+
 
   if (!page) {
     return (
