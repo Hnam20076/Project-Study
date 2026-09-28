@@ -12,10 +12,14 @@ import type {
   MindMap,
   KnowledgeNode,
   KnowledgeEdge,
+  Question,
+  ExamAttempt,
+  Formula,
+  CalcHistoryItem,
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -35,6 +39,10 @@ class StudyOSDatabase extends Dexie {
   mindmaps!: Table<MindMap>
   knowledgeNodes!: Table<KnowledgeNode>
   knowledgeEdges!: Table<KnowledgeEdge>
+  questions!: Table<Question>
+  examAttempts!: Table<ExamAttempt>
+  formulas!: Table<Formula>
+  calcHistory!: Table<CalcHistoryItem>
 
   constructor() {
     super('StudyOSDatabase')
@@ -51,10 +59,17 @@ class StudyOSDatabase extends Dexie {
       noteImages: 'id, pageId, createdAt',
     })
 
-    this.version(DB_VERSION).stores({
+    this.version(2).stores({
       mindmaps: 'id, name, isDemo, createdAt, updatedAt',
       knowledgeNodes: 'id, title, difficulty, isDemo, createdAt, updatedAt',
       knowledgeEdges: 'id, fromNodeId, toNodeId, kind, isDemo',
+    })
+
+    this.version(DB_VERSION).stores({
+      questions: 'id, subjectId, topicId, difficulty, isDemo, createdAt',
+      examAttempts: 'id, subjectId, score, isDemo, completedAt, createdAt',
+      formulas: 'id, category, name, isDemo, createdAt',
+      calcHistory: 'id, createdAt',
     })
   }
 }

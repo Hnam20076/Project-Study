@@ -64,6 +64,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'flow-vendor': ['@xyflow/react'],
           'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit'],
+          'chart-vendor': ['recharts'],
           'math-vendor': ['katex', 'mathjs'],
           'ui-vendor': ['lucide-react', 'clsx', 'tailwind-merge'],
         },

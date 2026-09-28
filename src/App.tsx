@@ -7,6 +7,8 @@ import { SchedulePage } from '@/features/schedule/SchedulePage'
 import { NotesPage } from '@/features/notes/NotesPage'
 import { MindMapPage } from '@/features/mindmap/MindMapPage'
 import { KnowledgePage } from '@/features/knowledge/KnowledgePage'
+import { QuizPage } from '@/features/quiz/QuizPage'
+import { CalculatorPage } from '@/features/calculator/CalculatorPage'
 import { useThemeStore } from '@/stores/uiStore'
 
 export default function App() {
@@ -33,6 +35,8 @@ export default function App() {
           <Route path="schedule/*" element={<SchedulePage />} />
           <Route path="notes/*" element={<NotesPage />} />
           <Route path="mindmap/*" element={<MindMapPage />} />
+          <Route path="quiz/*" element={<QuizPage />} />
+          <Route path="calculator/*" element={<CalculatorPage />} />
           <Route path="knowledge/*" element={<KnowledgePage />} />
         </Route>
       </Routes>

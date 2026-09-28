@@ -134,6 +134,70 @@ const KnowledgeEdgeSchema = z.object({
   isDemo: z.boolean().optional(),
 })
 
+const QuestionSchema = BaseEntitySchema.extend({
+  subjectId: z.string(),
+  topicId: z.string().optional(),
+  type: z.enum(['single', 'multiple', 'numerical']),
+  prompt: z.string(),
+  options: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+  })).optional(),
+  correctAnswer: z.union([z.string(), z.array(z.string())]),
+  explanation: z.string(),
+  difficulty: z.number().min(1).max(5),
+  year: z.number().optional(),
+  source: z.string().optional(),
+})
+
+const ExamAttemptSchema = BaseEntitySchema.extend({
+  title: z.string(),
+  subjectId: z.string(),
+  totalQuestions: z.number(),
+  correctCount: z.number(),
+  score: z.number(),
+  durationSeconds: z.number(),
+  timeSpentSeconds: z.number(),
+  completedAt: z.coerce.date(),
+  answers: z.array(z.object({
+    questionId: z.string(),
+    userAnswer: z.union([z.string(), z.array(z.string())]).optional(),
+    isCorrect: z.boolean(),
+  })),
+  topicBreakdown: z.array(z.object({
+    topicId: z.string(),
+    topicName: z.string(),
+    total: z.number(),
+    correct: z.number(),
+    percent: z.number(),
+    status: z.enum(['good', 'average', 'weak']),
+  })),
+})
+
+const FormulaSchema = BaseEntitySchema.extend({
+  name: z.string(),
+  category: z.enum(['math', 'physics', 'electronics', 'custom']),
+  latex: z.string(),
+  description: z.string(),
+  variables: z.array(z.object({
+    symbol: z.string(),
+    name: z.string(),
+    unit: z.string(),
+    defaultValue: z.number().optional(),
+  })),
+  expression: z.string(),
+  resultSymbol: z.string(),
+  resultUnit: z.string(),
+  stepsExplanation: z.array(z.string()).optional(),
+})
+
+const CalcHistorySchema = z.object({
+  id: z.string(),
+  expression: z.string(),
+  result: z.string(),
+  createdAt: z.coerce.date(),
+})
+
 const ExportDataSchema = z.object({
   version: z.number(),
   exportedAt: z.string(),
@@ -154,9 +218,13 @@ const ExportDataSchema = z.object({
   mindmaps: z.array(MindMapSchema).optional(),
   knowledgeNodes: z.array(KnowledgeNodeSchema).optional(),
   knowledgeEdges: z.array(KnowledgeEdgeSchema).optional(),
+  questions: z.array(QuestionSchema).optional(),
+  examAttempts: z.array(ExamAttemptSchema).optional(),
+  formulas: z.array(FormulaSchema).optional(),
+  calcHistory: z.array(CalcHistorySchema).optional(),
 })
 
-export const EXPORT_VERSION = 2
+export const EXPORT_VERSION = 3
 
 /**
  * Xuất toàn bộ dữ liệu ra JSON
@@ -174,6 +242,10 @@ export async function exportAllData(): Promise<ExportData> {
     mindmaps,
     knowledgeNodes,
     knowledgeEdges,
+    questions,
+    examAttempts,
+    formulas,
+    calcHistory,
   ] = await Promise.all([
     db.subjects.toArray(),
     db.topics.toArray(),
@@ -186,6 +258,10 @@ export async function exportAllData(): Promise<ExportData> {
     db.mindmaps.toArray(),
     db.knowledgeNodes.toArray(),
     db.knowledgeEdges.toArray(),
+    db.questions.toArray(),
+    db.examAttempts.toArray(),
+    db.formulas.toArray(),
+    db.calcHistory.toArray(),
   ])
 
   return {
@@ -202,6 +278,10 @@ export async function exportAllData(): Promise<ExportData> {
     mindmaps,
     knowledgeNodes,
     knowledgeEdges,
+    questions,
+    examAttempts,
+    formulas,
+    calcHistory,
   }
 }
 
@@ -218,6 +298,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     db.subjects, db.topics, db.links, db.schedules,
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
+    db.questions, db.examAttempts, db.formulas, db.calcHistory,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -232,6 +313,10 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.mindmaps.clear(),
       db.knowledgeNodes.clear(),
       db.knowledgeEdges.clear(),
+      db.questions.clear(),
+      db.examAttempts.clear(),
+      db.formulas.clear(),
+      db.calcHistory.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -246,6 +331,10 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.mindmaps && parsed.mindmaps.length > 0) await db.mindmaps.bulkAdd(parsed.mindmaps as never[])
     if (parsed.knowledgeNodes && parsed.knowledgeNodes.length > 0) await db.knowledgeNodes.bulkAdd(parsed.knowledgeNodes as never[])
     if (parsed.knowledgeEdges && parsed.knowledgeEdges.length > 0) await db.knowledgeEdges.bulkAdd(parsed.knowledgeEdges as never[])
+    if (parsed.questions && parsed.questions.length > 0) await db.questions.bulkAdd(parsed.questions as never[])
+    if (parsed.examAttempts && parsed.examAttempts.length > 0) await db.examAttempts.bulkAdd(parsed.examAttempts as never[])
+    if (parsed.formulas && parsed.formulas.length > 0) await db.formulas.bulkAdd(parsed.formulas as never[])
+    if (parsed.calcHistory && parsed.calcHistory.length > 0) await db.calcHistory.bulkAdd(parsed.calcHistory as never[])
   })
 }
 

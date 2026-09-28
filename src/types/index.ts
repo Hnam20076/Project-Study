@@ -124,9 +124,14 @@ export interface ExportData {
   mindmaps?: MindMap[]
   knowledgeNodes?: KnowledgeNode[]
   knowledgeEdges?: KnowledgeEdge[]
+  questions?: Question[]
+  examAttempts?: ExamAttempt[]
+  formulas?: Formula[]
+  calcHistory?: CalcHistoryItem[]
 }
 
 export * from './mindmapKnowledge'
+export * from './quizCalculator'
 
 // === Search result ===
 export interface SearchResult {

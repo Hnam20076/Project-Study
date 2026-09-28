@@ -15,6 +15,10 @@ import type {
   MindMap,
   KnowledgeNode,
   KnowledgeEdge,
+  Question,
+  ExamAttempt,
+  Formula,
+  CalcHistoryItem,
 } from '@/types'
 
 // Helper tạo timestamp hiện tại
@@ -482,12 +486,134 @@ export const knowledgeEdgeRepo = {
   },
 }
 
+// === Question Repository (M4) ===
+export const questionRepo = {
+  async getAll(): Promise<Question[]> {
+    return db.questions.orderBy('createdAt').reverse().toArray()
+  },
+
+  async getBySubject(subjectId: string): Promise<Question[]> {
+    return db.questions.where('subjectId').equals(subjectId).reverse().sortBy('createdAt')
+  },
+
+  async getByTopic(topicId: string): Promise<Question[]> {
+    return db.questions.where('topicId').equals(topicId).toArray()
+  },
+
+  async getById(id: string): Promise<Question | undefined> {
+    return db.questions.get(id)
+  },
+
+  async create(data: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>): Promise<Question> {
+    const question: Question = { ...baseFields(), ...data }
+    await db.questions.add(question)
+    return question
+  },
+
+  async update(id: string, data: Partial<Question>): Promise<void> {
+    await db.questions.update(id, { ...data, updatedAt: now() })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.questions.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.questions.filter(item => item.isDemo === true).delete()
+  },
+}
+
+// === ExamAttempt Repository (M4) ===
+export const examAttemptRepo = {
+  async getAll(): Promise<ExamAttempt[]> {
+    return db.examAttempts.orderBy('completedAt').reverse().toArray()
+  },
+
+  async getBySubject(subjectId: string): Promise<ExamAttempt[]> {
+    return db.examAttempts.where('subjectId').equals(subjectId).reverse().sortBy('completedAt')
+  },
+
+  async getById(id: string): Promise<ExamAttempt | undefined> {
+    return db.examAttempts.get(id)
+  },
+
+  async create(data: Omit<ExamAttempt, 'id' | 'createdAt' | 'updatedAt'>): Promise<ExamAttempt> {
+    const attempt: ExamAttempt = { ...baseFields(), ...data }
+    await db.examAttempts.add(attempt)
+    return attempt
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.examAttempts.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.examAttempts.filter(item => item.isDemo === true).delete()
+  },
+}
+
+// === Formula Repository (M5) ===
+export const formulaRepo = {
+  async getAll(): Promise<Formula[]> {
+    return db.formulas.orderBy('name').toArray()
+  },
+
+  async getByCategory(category: string): Promise<Formula[]> {
+    return db.formulas.where('category').equals(category).toArray()
+  },
+
+  async getById(id: string): Promise<Formula | undefined> {
+    return db.formulas.get(id)
+  },
+
+  async create(data: Omit<Formula, 'id' | 'createdAt' | 'updatedAt'>): Promise<Formula> {
+    const formula: Formula = { ...baseFields(), ...data }
+    await db.formulas.add(formula)
+    return formula
+  },
+
+  async update(id: string, data: Partial<Formula>): Promise<void> {
+    await db.formulas.update(id, { ...data, updatedAt: now() })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.formulas.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.formulas.filter(item => item.isDemo === true).delete()
+  },
+}
+
+// === CalcHistory Repository (M5) ===
+export const calcHistoryRepo = {
+  async getRecent(limit = 30): Promise<CalcHistoryItem[]> {
+    return db.calcHistory.orderBy('createdAt').reverse().limit(limit).toArray()
+  },
+
+  async add(expression: string, result: string): Promise<CalcHistoryItem> {
+    const item: CalcHistoryItem = {
+      id: uuidv4(),
+      expression,
+      result,
+      createdAt: now(),
+    }
+    await db.calcHistory.add(item)
+    return item
+  },
+
+  async clear(): Promise<void> {
+    await db.calcHistory.clear()
+  },
+}
+
 // === Xóa toàn bộ dữ liệu mẫu ===
 export async function deleteAllDemoData(): Promise<void> {
   await db.transaction('rw', [
     db.subjects, db.topics, db.links, db.schedules,
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
+    db.questions, db.examAttempts, db.formulas, db.calcHistory,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -499,6 +625,9 @@ export async function deleteAllDemoData(): Promise<void> {
     await mindmapRepo.deleteDemoData()
     await knowledgeNodeRepo.deleteDemoData()
     await knowledgeEdgeRepo.deleteDemoData()
+    await questionRepo.deleteDemoData()
+    await examAttemptRepo.deleteDemoData()
+    await formulaRepo.deleteDemoData()
 
     // noteVersions của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()

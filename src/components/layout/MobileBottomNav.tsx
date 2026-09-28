@@ -1,14 +1,16 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Calendar, BookOpen, Network, Globe2 } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Network, Globe2, GraduationCap, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { vi } from '@/i18n/vi'
 
 const NAV_ITEMS = [
-  { path: '/dashboard', icon: LayoutDashboard, label: vi.nav.dashboard },
-  { path: '/schedule', icon: Calendar, label: vi.nav.schedule },
-  { path: '/notes', icon: BookOpen, label: vi.nav.notes },
-  { path: '/mindmap', icon: Network, label: vi.nav.mindmap },
-  { path: '/knowledge', icon: Globe2, label: vi.nav.knowledge },
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+  { path: '/schedule', icon: Calendar, label: 'Lịch' },
+  { path: '/notes', icon: BookOpen, label: 'Ghi chú' },
+  { path: '/mindmap', icon: Network, label: 'Sơ đồ' },
+  { path: '/quiz', icon: GraduationCap, label: 'Thi' },
+  { path: '/calculator', icon: Calculator, label: 'Máy tính' },
+  { path: '/knowledge', icon: Globe2, label: 'Tri thức' },
 ]
 
 export function MobileBottomNav() {

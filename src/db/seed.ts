@@ -8,11 +8,14 @@ import {
   mindmapRepo,
   knowledgeNodeRepo,
   knowledgeEdgeRepo,
+  questionRepo,
+  examAttemptRepo,
+  formulaRepo,
 } from './repositories'
 import { db } from './database'
 
 // Cờ kiểm tra đã seed chưa (lưu localStorage thay vì IndexedDB để kiểm tra nhanh)
-const SEED_KEY = 'study_os_seeded_v2'
+const SEED_KEY = 'study_os_seeded_v3'
 
 /**
  * Nạp dữ liệu mẫu tiếng Việt khi khởi chạy lần đầu
@@ -572,5 +575,239 @@ async function seedDemoData(): Promise<void> {
     kind: 'AppliedTo',
     label: 'Mô hình hóa quá độ RC',
     isDemo: true,
+  })
+
+  // === M4: Ngân hàng câu hỏi mẫu (Kỹ thuật chuẩn xác) ===
+  const q1 = await questionRepo.create({
+    subjectId: mathSubject.id,
+    topicId: chapter1.id,
+    type: 'single',
+    prompt: "Đạo hàm cấp 1 của hàm số $f(x) = x^2 e^{3x}$ tại $x = 0$ là:",
+    options: [
+      { id: 'opt-a', text: '0' },
+      { id: 'opt-b', text: '1' },
+      { id: 'opt-c', text: '3' },
+      { id: 'opt-d', text: '6' },
+    ],
+    correctAnswer: 'opt-a',
+    explanation: "Áp dụng quy tắc đạo hàm tích: $(u \\cdot v)' = u'v + uv'$. Với $u = x^2 \\implies u' = 2x$ và $v = e^{3x} \\implies v' = 3e^{3x}$. Ta có $f'(x) = 2x e^{3x} + 3x^2 e^{3x}$. Thay $x=0 \\implies f'(0) = 0$.",
+    difficulty: 2,
+    year: 2023,
+    source: 'Đề thi Giải tích 1 - ĐHBK',
+    tags: ['đạo hàm', 'giải tích'],
+    isDemo: true,
+  })
+
+  const q2 = await questionRepo.create({
+    subjectId: mathSubject.id,
+    topicId: chapter1.id,
+    type: 'single',
+    prompt: "Tính tích phân xác định $I = \\int_0^1 (2x + 1) e^x dx$:",
+    options: [
+      { id: 'opt-a', text: 'e' },
+      { id: 'opt-b', text: '2e - 1' },
+      { id: 'opt-c', text: 'e + 1' },
+      { id: 'opt-d', text: '2e + 1' },
+    ],
+    correctAnswer: 'opt-c',
+    explanation: "Đặt $u = 2x + 1 \\implies du = 2dx$; $dv = e^x dx \\implies v = e^x$. Áp dụng công thức tích phân từng phần: $I = [(2x+1)e^x]_0^1 - 2\\int_0^1 e^x dx = 3e - 1 - 2(e - 1) = e + 1$.",
+    difficulty: 3,
+    year: 2022,
+    source: 'Toán cao cấp A1',
+    tags: ['tích phân', 'từng phần'],
+    isDemo: true,
+  })
+
+  const q3 = await questionRepo.create({
+    subjectId: electronicsSubject.id,
+    type: 'single',
+    prompt: "Cho mạch phân áp gồm nguồn $V_s = 12\\text{V}$ và hai điện trở nối tiếp $R_1 = 4\\text{k}\\Omega$, $R_2 = 8\\text{k}\\Omega$. Điện áp rơi trên điện trở $R_2$ là:",
+    options: [
+      { id: 'opt-a', text: '4V' },
+      { id: 'opt-b', text: '6V' },
+      { id: 'opt-c', text: '8V' },
+      { id: 'opt-d', text: '10V' },
+    ],
+    correctAnswer: 'opt-c',
+    explanation: "Theo công thức phân áp: $V_{R2} = V_s \\cdot \\frac{R_2}{R_1 + R_2} = 12 \\cdot \\frac{8}{4 + 8} = 12 \\cdot \\frac{8}{12} = 8\\text{V}$.",
+    difficulty: 2,
+    year: 2023,
+    source: 'Cơ sở Mạch điện',
+    tags: ['mạch điện', 'phân áp', 'ohm'],
+    isDemo: true,
+  })
+
+  const q4 = await questionRepo.create({
+    subjectId: electronicsSubject.id,
+    type: 'single',
+    prompt: "Mạch RC nối tiếp gồm $R = 10\\text{k}\\Omega$ và $C = 100\\mu\\text{F}$. Hằng số thời gian $\\tau$ của mạch là:",
+    options: [
+      { id: 'opt-a', text: '0.1s' },
+      { id: 'opt-b', text: '1.0s' },
+      { id: 'opt-c', text: '10s' },
+      { id: 'opt-d', text: '100s' },
+    ],
+    correctAnswer: 'opt-b',
+    explanation: "Hằng số thời gian $\\tau = R \\cdot C = 10 \\cdot 10^3\\,\\Omega \\times 100 \\cdot 10^{-6}\\,\\text{F} = 1.0\\,\\text{s}$.",
+    difficulty: 2,
+    year: 2024,
+    source: 'Mạch điện tử tương tự',
+    tags: ['quá độ', 'rc', 'hằng số thời gian'],
+    isDemo: true,
+  })
+
+  const q5 = await questionRepo.create({
+    subjectId: electronicsSubject.id,
+    type: 'single',
+    prompt: "Trở kháng phức của tụ điện có điện dung $C$ ở tần số góc $\\omega$ được biểu diễn là:",
+    options: [
+      { id: 'opt-a', text: 'Z_C = j\\omega C' },
+      { id: 'opt-b', text: 'Z_C = \\frac{1}{j\\omega C} = -\\frac{j}{\\omega C}' },
+      { id: 'opt-c', text: 'Z_C = \\omega C' },
+      { id: 'opt-d', text: 'Z_C = \\frac{R}{j\\omega C}' },
+    ],
+    correctAnswer: 'opt-b',
+    explanation: "Theo lý thuyết mạch xoay chiều tần số cao, trở kháng phức của tụ điện là $Z_C = \\frac{1}{j\\omega C} = -j \\frac{1}{\\omega C}$.",
+    difficulty: 3,
+    year: 2023,
+    source: 'Lý thuyết Mạch 1',
+    tags: ['trở kháng', 'tụ điện', 'số phức'],
+    isDemo: true,
+  })
+
+  // === M5: Thư viện công thức kỹ thuật (Tính toán tương tác & từng bước) ===
+  await formulaRepo.create({
+    name: "Định Luật Ohm (Ohm's Law)",
+    category: 'electronics',
+    latex: "I = \\frac{U}{R}",
+    description: "Cường độ dòng điện chạy qua dây dẫn tỉ lệ thuận với hiệu điện thế và tỉ lệ nghịch với điện trở.",
+    expression: "U / R",
+    resultSymbol: "I",
+    resultUnit: "A (Ampe)",
+    variables: [
+      { symbol: "U", name: "Hiệu điện thế", unit: "V (Volt)", defaultValue: 12 },
+      { symbol: "R", name: "Điện trở", unit: "Ω (Ohm)", defaultValue: 100 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Xác định hiệu điện thế hai đầu điện trở U (V) và giá trị điện trở thuần R (Ω).",
+      "Bước 2: Áp dụng định luật Ohm: I = U / R.",
+      "Bước 3: Thay số và rút ra cường độ dòng điện chạy qua mạch theo đơn vị Ampe.",
+    ],
+    tags: ['ohm', 'điện trở', 'dòng điện'],
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  await formulaRepo.create({
+    name: "Cầu Phân Áp (Voltage Divider)",
+    category: 'electronics',
+    latex: "V_{out} = V_{in} \\cdot \\frac{R_2}{R_1 + R_2}",
+    description: "Tính điện áp đầu ra trên điện trở R2 khi mắc nối tiếp R1 và R2 với nguồn Vin.",
+    expression: "Vin * (R2 / (R1 + R2))",
+    resultSymbol: "Vout",
+    resultUnit: "V (Volt)",
+    variables: [
+      { symbol: "Vin", name: "Điện áp nguồn đầu vào", unit: "V", defaultValue: 12 },
+      { symbol: "R1", name: "Điện trở nhánh trên R1", unit: "Ω", defaultValue: 1000 },
+      { symbol: "R2", name: "Điện trở nhánh dưới R2", unit: "Ω", defaultValue: 2000 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Xác định tổng trở tương đương của mạch nối tiếp: R_td = R1 + R2.",
+      "Bước 2: Dòng điện chung chạy qua mạch: I = Vin / (R1 + R2).",
+      "Bước 3: Điện áp lấy ra trên R2: Vout = I * R2 = Vin * R2 / (R1 + R2).",
+    ],
+    tags: ['phân áp', 'mạch điện'],
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  await formulaRepo.create({
+    name: "Hằng Số Thời Gian Mạch RC (RC Time Constant)",
+    category: 'electronics',
+    latex: "\\tau = R \\cdot C",
+    description: "Thời gian để điện áp trên tụ nạp đạt khoảng 63.2% giá trị cực đại.",
+    expression: "R * C",
+    resultSymbol: "tau",
+    resultUnit: "s (Giây)",
+    variables: [
+      { symbol: "R", name: "Điện trở nạp", unit: "Ω", defaultValue: 10000 },
+      { symbol: "C", name: "Điện dung tụ điện", unit: "F (Farad)", defaultValue: 0.0001 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Quy đổi điện dung C về đơn vị chuẩn Farad (F) và điện trở R về Ohm (Ω).",
+      "Bước 2: Tính tích số hằng số thời gian: tau = R * C.",
+      "Bước 3: Sau khoảng thời gian 5 * tau, quá trình nạp/xả tụ được xem như hoàn tất (~99.3%).",
+    ],
+    tags: ['rc', 'quá độ', 'hằng số thời gian'],
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  await formulaRepo.create({
+    name: "Tần Số Cộng Hưởng Mạch LC (Resonance Frequency)",
+    category: 'electronics',
+    latex: "f_0 = \\frac{1}{2\\pi\\sqrt{L \\cdot C}}",
+    description: "Tần số tại đó cảm kháng bằng dung kháng trong mạch dao động LC.",
+    expression: "1 / (2 * pi * sqrt(L * C))",
+    resultSymbol: "f0",
+    resultUnit: "Hz (Hertz)",
+    variables: [
+      { symbol: "L", name: "Độ tự cảm cuộn dây", unit: "H (Henry)", defaultValue: 0.001 },
+      { symbol: "C", name: "Điện dung tụ điện", unit: "F (Farad)", defaultValue: 0.000001 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Điều kiện cộng hưởng: Z_L = Z_C => omega * L = 1 / (omega * C).",
+      "Bước 2: Tần số góc cộng hưởng: omega_0 = 1 / sqrt(L * C).",
+      "Bước 3: Tần số f_0 = omega_0 / (2 * pi) = 1 / (2 * pi * sqrt(L * C)).",
+    ],
+    tags: ['cộng hưởng', 'lc', 'tần số'],
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  await formulaRepo.create({
+    name: "Công Suất Mạch Điện Xoay Chiều (Active Power)",
+    category: 'physics',
+    latex: "P = U \\cdot I \\cdot \\cos(\\varphi)",
+    description: "Công suất tác dụng tiêu thụ trên tải xoay chiều hình sin 1 pha.",
+    expression: "U * I * cos(phi)",
+    resultSymbol: "P",
+    resultUnit: "W (Watt)",
+    variables: [
+      { symbol: "U", name: "Điện áp hiệu dụng", unit: "V", defaultValue: 220 },
+      { symbol: "I", name: "Dòng điện hiệu dụng", unit: "A", defaultValue: 5 },
+      { symbol: "phi", name: "Góc lệch pha (Radian)", unit: "rad", defaultValue: 0.52 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Xác định điện áp hiệu dụng U và dòng điện hiệu dụng I.",
+      "Bước 2: Xác định hệ số công suất cos(phi) của tải tiêu thụ.",
+      "Bước 3: Tính công suất tác dụng: P = U * I * cos(phi).",
+    ],
+    tags: ['công suất', 'xoay chiều', 'vật lý'],
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  await formulaRepo.create({
+    name: "Biệt Thức Phương Trình Bậc Hai (Delta)",
+    category: 'math',
+    latex: "\\Delta = b^2 - 4ac",
+    description: "Dùng để biện luận và tìm nghiệm của phương trình bậc 2: ax^2 + bx + c = 0.",
+    expression: "b^2 - 4 * a * c",
+    resultSymbol: "Delta",
+    resultUnit: "",
+    variables: [
+      { symbol: "a", name: "Hệ số bậc 2 (a ≠ 0)", unit: "", defaultValue: 1 },
+      { symbol: "b", name: "Hệ số bậc 1", unit: "", defaultValue: -5 },
+      { symbol: "c", name: "Hằng số tự do", unit: "", defaultValue: 6 },
+    ],
+    stepsExplanation: [
+      "Bước 1: Tính biệt thức Delta = b^2 - 4ac.",
+      "Bước 2: Nếu Delta > 0, phương trình có 2 nghiệm phân biệt: x1,2 = (-b ± sqrt(Delta)) / (2a).",
+      "Bước 3: Nếu Delta = 0, nghiệm kép: x = -b / (2a). Nếu Delta < 0, phương trình vô nghiệm thực (có nghiệm phức).",
+    ],
+    tags: ['phương trình bậc 2', 'đại số', 'toán'],
+    isDemo: true,
+    subjectId: mathSubject.id,
   })
 }

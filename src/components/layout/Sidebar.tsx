@@ -5,6 +5,8 @@ import {
   BookOpen,
   Network,
   Globe2,
+  GraduationCap,
+  Calculator,
   ChevronLeft,
   ChevronRight,
   Moon,
@@ -28,6 +30,8 @@ const NAV_ITEMS = [
   { path: '/schedule', icon: Calendar, label: vi.nav.schedule, enabled: true },
   { path: '/notes', icon: BookOpen, label: vi.nav.notes, enabled: true },
   { path: '/mindmap', icon: Network, label: vi.nav.mindmap, enabled: true },
+  { path: '/quiz', icon: GraduationCap, label: vi.nav.quiz, enabled: true },
+  { path: '/calculator', icon: Calculator, label: vi.nav.calculator, enabled: true },
   { path: '/knowledge', icon: Globe2, label: vi.nav.knowledge, enabled: true },
 ]
 

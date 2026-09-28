@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useUIStore } from '@/stores/uiStore'
 import { vi } from '@/i18n/vi'
-import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo } from '@/db/repositories'
+import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo, questionRepo, formulaRepo } from '@/db/repositories'
 import { debounce, truncate } from '@/lib/utils'
 import type { SearchResult } from '@/types'
 import { cn } from '@/lib/utils'
@@ -29,11 +29,13 @@ export function CommandPalette() {
       setLoading(true)
       try {
         const lowerQ = q.toLowerCase()
-        const [pages, schedules, mindmaps, knodes] = await Promise.all([
+        const [pages, schedules, mindmaps, knodes, qList, fList] = await Promise.all([
           pageRepo.searchFullText(q),
           scheduleRepo.getAll(),
           mindmapRepo.getAll(),
           knowledgeNodeRepo.getAll(),
+          questionRepo.getAll(),
+          formulaRepo.getAll(),
         ])
 
         const pageResults: SearchResult[] = pages.map(p => ({
@@ -51,7 +53,7 @@ export function CommandPalette() {
             s.className.toLowerCase().includes(lowerQ) ||
             (s.teacher?.toLowerCase().includes(lowerQ) ?? false)
           )
-          .slice(0, 4)
+          .slice(0, 3)
           .map(s => ({
             id: s.id,
             type: 'schedule' as const,
@@ -66,7 +68,7 @@ export function CommandPalette() {
             m.name.toLowerCase().includes(lowerQ) ||
             m.nodes.some(n => n.label.toLowerCase().includes(lowerQ))
           )
-          .slice(0, 4)
+          .slice(0, 3)
           .map(m => ({
             id: m.id,
             type: 'mindmap' as const,
@@ -83,7 +85,7 @@ export function CommandPalette() {
             kn.description.toLowerCase().includes(lowerQ) ||
             kn.tags.some(t => t.toLowerCase().includes(lowerQ))
           )
-          .slice(0, 5)
+          .slice(0, 3)
           .map(kn => ({
             id: kn.id,
             type: 'knowledge_node' as const,
@@ -94,7 +96,47 @@ export function CommandPalette() {
             updatedAt: kn.updatedAt,
           }))
 
-        setResults([...pageResults, ...mindmapResults, ...knowledgeResults, ...scheduleResults])
+        const questionResults: SearchResult[] = qList
+          .filter(qu =>
+            qu.prompt.toLowerCase().includes(lowerQ) ||
+            qu.tags.some(t => t.toLowerCase().includes(lowerQ))
+          )
+          .slice(0, 3)
+          .map(qu => ({
+            id: qu.id,
+            type: 'question' as const,
+            title: truncate(qu.prompt.replace(/\$/g, ''), 50),
+            subtitle: vi.quiz.title,
+            url: '/quiz',
+            excerpt: truncate(qu.explanation, 80),
+            updatedAt: qu.updatedAt,
+          }))
+
+        const formulaResults: SearchResult[] = fList
+          .filter(fo =>
+            fo.name.toLowerCase().includes(lowerQ) ||
+            fo.description.toLowerCase().includes(lowerQ) ||
+            fo.tags.some(t => t.toLowerCase().includes(lowerQ))
+          )
+          .slice(0, 3)
+          .map(fo => ({
+            id: fo.id,
+            type: 'formula' as const,
+            title: fo.name,
+            subtitle: vi.calculator.title,
+            url: '/calculator',
+            excerpt: fo.latex,
+            updatedAt: fo.updatedAt,
+          }))
+
+        setResults([
+          ...pageResults,
+          ...mindmapResults,
+          ...knowledgeResults,
+          ...questionResults,
+          ...formulaResults,
+          ...scheduleResults,
+        ])
         setSelectedIndex(0)
       } catch (e) {
         console.error(e)
@@ -248,6 +290,22 @@ export function CommandPalette() {
               >
                 <span className="text-sm text-slate-700 dark:text-slate-300">
                   🧠 {vi.mindmap.title}
+                </span>
+              </button>
+              <button
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-muted transition-colors"
+                onClick={() => { navigate('/quiz'); handleClose() }}
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  🎯 {vi.quiz.title}
+                </span>
+              </button>
+              <button
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-muted transition-colors"
+                onClick={() => { navigate('/calculator'); handleClose() }}
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  🧮 {vi.calculator.title}
                 </span>
               </button>
               <button
