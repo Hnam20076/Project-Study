@@ -249,9 +249,13 @@ const ComponentsPageContent: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {comp.verified ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" title="Đã xác minh datasheet" />
+                          <span title="Đã xác minh datasheet">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          </span>
                         ) : (
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" title="Chưa xác minh" />
+                          <span title="Chưa xác minh">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                          </span>
                         )}
                         <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-dark-muted text-slate-600 dark:text-slate-300">
                           {comp.package}
