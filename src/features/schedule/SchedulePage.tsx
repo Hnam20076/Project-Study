@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { scheduleRepo } from '@/db/repositories'

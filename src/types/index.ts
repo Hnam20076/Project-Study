@@ -1,4 +1,6 @@
 // Các type cơ bản dùng xuyên suốt ứng dụng
+import type { MindMap, KnowledgeNode, KnowledgeEdge } from './mindmapKnowledge'
+import type { Question, ExamAttempt, Formula, CalcHistoryItem } from './quizCalculator'
 
 // === Entity base ===
 export interface BaseEntity {

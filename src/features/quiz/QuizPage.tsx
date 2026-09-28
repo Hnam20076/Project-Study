@@ -25,7 +25,6 @@ import { toast } from 'sonner'
 import type {
   Question,
   ExamAttempt,
-  Subject,
   Topic,
   TopicGapAnalysis,
   ExamAnswerRecord,

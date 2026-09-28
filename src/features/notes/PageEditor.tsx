@@ -29,7 +29,7 @@ import { vi } from '@/i18n/vi'
 import { debounce, formatTime, countWordsInHTML } from '@/lib/utils'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import type { NotePage } from '@/types'
+import type { NotePage, NoteVersion } from '@/types'
 
 // Thời gian debounce autosave (ms)
 const AUTOSAVE_DELAY = 1500
@@ -43,7 +43,7 @@ export function PageEditor({ pageId }: Props) {
   const [title, setTitle] = useState('')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [showVersions, setShowVersions] = useState(false)
-  const [versions, setVersions] = useState<{ id: string; savedAt: Date; wordCount?: number }[]>([])
+  const [versions, setVersions] = useState<NoteVersion[]>([])
   const titleRef = useRef<HTMLInputElement>(null)
 
   // Load trang

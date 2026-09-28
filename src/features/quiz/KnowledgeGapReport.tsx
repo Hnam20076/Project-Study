@@ -86,8 +86,10 @@ export const KnowledgeGapReport: React.FC<Props> = ({
                 <XAxis dataKey="name" interval={0} angle={-15} textAnchor="end" tick={{ fontSize: 10 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                 <Tooltip
-                  formatter={(val: number | string | undefined) => [`${val ?? 0}%`, 'Độ chính xác']}
-                  labelFormatter={(_label, payload) => (payload[0]?.payload as { fullName?: string })?.fullName || ''}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(val: any) => [`${val ?? 0}%`, 'Độ chính xác']}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  labelFormatter={(_label: any, payload: any) => payload?.[0]?.payload?.fullName || ''}
                 />
                 <Bar dataKey="percent" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
