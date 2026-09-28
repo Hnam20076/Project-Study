@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Calendar, BookOpen, Network, Globe2, GraduationCap, Calculator } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Network, Globe2, GraduationCap, Calculator, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/quiz', icon: GraduationCap, label: 'Thi' },
   { path: '/calculator', icon: Calculator, label: 'Máy tính' },
   { path: '/knowledge', icon: Globe2, label: 'Tri thức' },
+  { path: '/components', icon: Cpu, label: 'Linh kiện' },
 ]
 
 export function MobileBottomNav() {

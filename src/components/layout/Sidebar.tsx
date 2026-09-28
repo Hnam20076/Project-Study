@@ -7,6 +7,7 @@ import {
   Globe2,
   GraduationCap,
   Calculator,
+  Cpu,
   ChevronLeft,
   ChevronRight,
   Moon,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { path: '/quiz', icon: GraduationCap, label: vi.nav.quiz, enabled: true },
   { path: '/calculator', icon: Calculator, label: vi.nav.calculator, enabled: true },
   { path: '/knowledge', icon: Globe2, label: vi.nav.knowledge, enabled: true },
+  { path: '/components', icon: Cpu, label: vi.nav.components, enabled: true },
 ]
 
 export function Sidebar() {

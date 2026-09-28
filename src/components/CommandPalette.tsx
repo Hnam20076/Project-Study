@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useUIStore } from '@/stores/uiStore'
 import { vi } from '@/i18n/vi'
-import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo, questionRepo, formulaRepo } from '@/db/repositories'
+import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo, questionRepo, formulaRepo, componentRepo } from '@/db/repositories'
 import { debounce, truncate } from '@/lib/utils'
 import type { SearchResult } from '@/types'
 import { cn } from '@/lib/utils'
@@ -29,13 +29,14 @@ export function CommandPalette() {
       setLoading(true)
       try {
         const lowerQ = q.toLowerCase()
-        const [pages, schedules, mindmaps, knodes, qList, fList] = await Promise.all([
+        const [pages, schedules, mindmaps, knodes, qList, fList, comps] = await Promise.all([
           pageRepo.searchFullText(q),
           scheduleRepo.getAll(),
           mindmapRepo.getAll(),
           knowledgeNodeRepo.getAll(),
           questionRepo.getAll(),
           formulaRepo.getAll(),
+          componentRepo.search(q),
         ])
 
         const pageResults: SearchResult[] = pages.map(p => ({
@@ -129,12 +130,23 @@ export function CommandPalette() {
             updatedAt: fo.updatedAt,
           }))
 
+        const compResults: SearchResult[] = comps.slice(0, 4).map(c => ({
+          id: c.id,
+          type: 'component' as const,
+          title: `${c.name} (${c.code})`,
+          subtitle: `${vi.nav.components} • ${c.package}`,
+          url: '/components',
+          excerpt: `${c.description} - ${c.pins.length} chân`,
+          updatedAt: c.updatedAt,
+        }))
+
         setResults([
           ...pageResults,
           ...mindmapResults,
           ...knowledgeResults,
           ...questionResults,
           ...formulaResults,
+          ...compResults,
           ...scheduleResults,
         ])
         setSelectedIndex(0)
@@ -314,6 +326,14 @@ export function CommandPalette() {
               >
                 <span className="text-sm text-slate-700 dark:text-slate-300">
                   🌐 {vi.knowledge.title}
+                </span>
+              </button>
+              <button
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-muted transition-colors"
+                onClick={() => { navigate('/components'); handleClose() }}
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  ⚡ {vi.components.title}
                 </span>
               </button>
             </div>

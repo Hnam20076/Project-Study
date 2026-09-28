@@ -1,6 +1,7 @@
 // Các type cơ bản dùng xuyên suốt ứng dụng
 import type { MindMap, KnowledgeNode, KnowledgeEdge } from './mindmapKnowledge'
 import type { Question, ExamAttempt, Formula, CalcHistoryItem } from './quizCalculator'
+import type { ElectronicComponent } from './components'
 
 // === Entity base ===
 export interface BaseEntity {
@@ -130,10 +131,12 @@ export interface ExportData {
   examAttempts?: ExamAttempt[]
   formulas?: Formula[]
   calcHistory?: CalcHistoryItem[]
+  electronicComponents?: ElectronicComponent[]
 }
 
 export * from './mindmapKnowledge'
 export * from './quizCalculator'
+export * from './components'
 
 // === Search result ===
 export interface SearchResult {

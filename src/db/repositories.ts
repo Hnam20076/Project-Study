@@ -19,6 +19,8 @@ import type {
   ExamAttempt,
   Formula,
   CalcHistoryItem,
+  ElectronicComponent,
+  ComponentCategory,
 } from '@/types'
 
 // Helper tạo timestamp hiện tại
@@ -607,6 +609,66 @@ export const calcHistoryRepo = {
   },
 }
 
+// === Electronic Component Repository (M7) ===
+export const componentRepo = {
+  async getAll(): Promise<ElectronicComponent[]> {
+    return db.electronicComponents.toArray()
+  },
+
+  async getById(id: string): Promise<ElectronicComponent | undefined> {
+    return db.electronicComponents.get(id)
+  },
+
+  async getByCategory(category: ComponentCategory): Promise<ElectronicComponent[]> {
+    return db.electronicComponents.where('category').equals(category).toArray()
+  },
+
+  async search(query: string): Promise<ElectronicComponent[]> {
+    const q = query.toLowerCase().trim()
+    if (!q) return db.electronicComponents.toArray()
+    return db.electronicComponents
+      .filter(item =>
+        item.name.toLowerCase().includes(q) ||
+        item.code.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.package.toLowerCase().includes(q) ||
+        item.pins.some(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q))
+      )
+      .toArray()
+  },
+
+  async create(data: Omit<ElectronicComponent, 'id' | 'createdAt' | 'updatedAt'>): Promise<ElectronicComponent> {
+    const item: ElectronicComponent = {
+      ...data,
+      id: uuidv4(),
+      createdAt: now(),
+      updatedAt: now(),
+    }
+    await db.electronicComponents.add(item)
+    return item
+  },
+
+  async update(id: string, data: Partial<ElectronicComponent>): Promise<ElectronicComponent> {
+    const existing = await db.electronicComponents.get(id)
+    if (!existing) throw new Error(`Component ${id} not found`)
+    const updated: ElectronicComponent = {
+      ...existing,
+      ...data,
+      updatedAt: now(),
+    }
+    await db.electronicComponents.put(updated)
+    return updated
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.electronicComponents.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.electronicComponents.filter(c => c.isDemo === true).delete()
+  },
+}
+
 // === Xóa toàn bộ dữ liệu mẫu ===
 export async function deleteAllDemoData(): Promise<void> {
   await db.transaction('rw', [
@@ -614,6 +676,7 @@ export async function deleteAllDemoData(): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
+    db.electronicComponents,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -628,6 +691,7 @@ export async function deleteAllDemoData(): Promise<void> {
     await questionRepo.deleteDemoData()
     await examAttemptRepo.deleteDemoData()
     await formulaRepo.deleteDemoData()
+    await componentRepo.deleteDemoData()
 
     // noteVersions của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()

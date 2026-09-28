@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, BookOpen, Clock, Plus, Zap } from 'lucide-react'
+import { Calendar, BookOpen, Clock, Plus, Zap, Network, GraduationCap, Calculator, Globe2, Cpu } from 'lucide-react'
 import { scheduleRepo, pageRepo } from '@/db/repositories'
 import { vi } from '@/i18n/vi'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -288,6 +288,40 @@ function DashboardContent() {
             </button>
           </div>
           <RecentNotesCard pages={recentPages} />
+        </div>
+      </div>
+
+      {/* 7 Modules Quick Access Grid */}
+      <div className="pt-2">
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          Hệ sinh thái học tập (7 Modules)
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {[
+            { title: vi.nav.schedule, path: '/schedule', icon: Calendar, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
+            { title: vi.nav.notes, path: '/notes', icon: BookOpen, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
+            { title: vi.nav.mindmap, path: '/mindmap', icon: Network, color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40' },
+            { title: vi.nav.quiz, path: '/quiz', icon: GraduationCap, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
+            { title: vi.nav.calculator, path: '/calculator', icon: Calculator, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
+            { title: vi.nav.knowledge, path: '/knowledge', icon: Globe2, color: 'text-violet-500 bg-violet-50 dark:bg-violet-950/40' },
+            { title: vi.nav.components, path: '/components', icon: Cpu, color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/40' },
+          ].map(mod => {
+            const Icon = mod.icon
+            return (
+              <button
+                key={mod.path}
+                onClick={() => navigate(mod.path)}
+                className="card p-3 flex flex-col items-center justify-center text-center gap-2 hover:border-primary-400 dark:hover:border-primary-500 transition-all hover:scale-105"
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${mod.color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {mod.title}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

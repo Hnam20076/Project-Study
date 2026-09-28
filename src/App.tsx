@@ -9,6 +9,7 @@ import { MindMapPage } from '@/features/mindmap/MindMapPage'
 import { KnowledgePage } from '@/features/knowledge/KnowledgePage'
 import { QuizPage } from '@/features/quiz/QuizPage'
 import { CalculatorPage } from '@/features/calculator/CalculatorPage'
+import { ComponentsPage } from '@/features/components'
 import { useThemeStore } from '@/stores/uiStore'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="quiz/*" element={<QuizPage />} />
           <Route path="calculator/*" element={<CalculatorPage />} />
           <Route path="knowledge/*" element={<KnowledgePage />} />
+          <Route path="components/*" element={<ComponentsPage />} />
         </Route>
       </Routes>
     </>

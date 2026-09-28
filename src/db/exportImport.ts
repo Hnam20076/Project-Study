@@ -198,6 +198,50 @@ const CalcHistorySchema = z.object({
   createdAt: z.coerce.date(),
 })
 
+const ComponentPinSchema = z.object({
+  number: z.number(),
+  name: z.string(),
+  type: z.enum(['power', 'ground', 'io', 'analog', 'pwm', 'comm', 'control', 'passive']),
+  description: z.string(),
+  voltageMax: z.string().optional(),
+  currentMax: z.string().optional(),
+})
+
+const ApplicationCircuitSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  svgDiagram: z.string().optional(),
+  schematicExplanation: z.string(),
+  bom: z.array(z.object({
+    componentName: z.string(),
+    quantity: z.number(),
+    note: z.string().optional(),
+  })),
+})
+
+const ElectronicComponentSchema = BaseEntitySchema.extend({
+  name: z.string(),
+  code: z.string(),
+  category: z.enum(['ic', 'transistor', 'diode', 'sensor', 'passive', 'module']),
+  package: z.enum(['DIP-8', 'DIP-14', 'DIP-16', 'DIP-28', 'TO-92', 'TO-220', 'Module', 'Other']),
+  description: z.string(),
+  operatingVoltage: z.object({
+    min: z.number(),
+    typ: z.number().optional(),
+    max: z.number(),
+    unit: z.string(),
+  }),
+  maxCurrent: z.string().optional(),
+  frequency: z.string().optional(),
+  temperatureRange: z.string().optional(),
+  pins: z.array(ComponentPinSchema),
+  applicationCircuits: z.array(ApplicationCircuitSchema).optional(),
+  datasheetUrl: z.string().optional(),
+  verified: z.boolean(),
+  source: z.string().optional(),
+  manufacturer: z.string().optional(),
+})
+
 const ExportDataSchema = z.object({
   version: z.number(),
   exportedAt: z.string(),
@@ -222,9 +266,10 @@ const ExportDataSchema = z.object({
   examAttempts: z.array(ExamAttemptSchema).optional(),
   formulas: z.array(FormulaSchema).optional(),
   calcHistory: z.array(CalcHistorySchema).optional(),
+  electronicComponents: z.array(ElectronicComponentSchema).optional(),
 })
 
-export const EXPORT_VERSION = 3
+export const EXPORT_VERSION = 4
 
 /**
  * Xuất toàn bộ dữ liệu ra JSON
@@ -246,6 +291,7 @@ export async function exportAllData(): Promise<ExportData> {
     examAttempts,
     formulas,
     calcHistory,
+    electronicComponents,
   ] = await Promise.all([
     db.subjects.toArray(),
     db.topics.toArray(),
@@ -262,6 +308,7 @@ export async function exportAllData(): Promise<ExportData> {
     db.examAttempts.toArray(),
     db.formulas.toArray(),
     db.calcHistory.toArray(),
+    db.electronicComponents.toArray(),
   ])
 
   return {
@@ -282,6 +329,7 @@ export async function exportAllData(): Promise<ExportData> {
     examAttempts,
     formulas,
     calcHistory,
+    electronicComponents,
   }
 }
 
@@ -299,6 +347,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
+    db.electronicComponents,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -317,6 +366,7 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.examAttempts.clear(),
       db.formulas.clear(),
       db.calcHistory.clear(),
+      db.electronicComponents.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -335,6 +385,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.examAttempts && parsed.examAttempts.length > 0) await db.examAttempts.bulkAdd(parsed.examAttempts as never[])
     if (parsed.formulas && parsed.formulas.length > 0) await db.formulas.bulkAdd(parsed.formulas as never[])
     if (parsed.calcHistory && parsed.calcHistory.length > 0) await db.calcHistory.bulkAdd(parsed.calcHistory as never[])
+    if (parsed.electronicComponents && parsed.electronicComponents.length > 0) await db.electronicComponents.bulkAdd(parsed.electronicComponents as never[])
   })
 }
 
