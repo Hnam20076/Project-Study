@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Personal Study OS',
         short_name: 'StudyOS',
@@ -21,19 +21,13 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
           },
         ],
       },
       workbox: {
-        // Cache tất cả assets cho offline
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
@@ -57,18 +51,6 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Tách vendor để tối ưu cache
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'flow-vendor': ['@xyflow/react'],
-          'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit'],
-          'chart-vendor': ['recharts'],
-          'math-vendor': ['katex', 'mathjs'],
-          'ui-vendor': ['lucide-react', 'clsx', 'tailwind-merge'],
-        },
-      },
-    },
+    chunkSizeWarningLimit: 2000,
   },
 })
