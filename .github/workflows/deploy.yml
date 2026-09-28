@@ -35,7 +35,12 @@ jobs:
         run: npm run typecheck
 
       - name: Build
-        run: npm run build
+        run: |
+          npm run build || {
+            ERR=$(npx vite build 2>&1 | tail -n 25 | tr '\n' ' ' | tr '"' "'")
+            echo "::error title=Vite Build Error::$ERR"
+            exit 1
+          }
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
