@@ -121,7 +121,12 @@ export interface ExportData {
   sections: NoteSection[]
   pages: NotePage[]
   noteVersions: NoteVersion[]
+  mindmaps?: MindMap[]
+  knowledgeNodes?: KnowledgeNode[]
+  knowledgeEdges?: KnowledgeEdge[]
 }
+
+export * from './mindmapKnowledge'
 
 // === Search result ===
 export interface SearchResult {

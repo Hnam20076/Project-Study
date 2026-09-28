@@ -5,11 +5,14 @@ import {
   sectionRepo,
   pageRepo,
   scheduleRepo,
+  mindmapRepo,
+  knowledgeNodeRepo,
+  knowledgeEdgeRepo,
 } from './repositories'
 import { db } from './database'
 
 // Cờ kiểm tra đã seed chưa (lưu localStorage thay vì IndexedDB để kiểm tra nhanh)
-const SEED_KEY = 'study_os_seeded_v1'
+const SEED_KEY = 'study_os_seeded_v2'
 
 /**
  * Nạp dữ liệu mẫu tiếng Việt khi khởi chạy lần đầu
@@ -18,13 +21,6 @@ const SEED_KEY = 'study_os_seeded_v1'
 export async function seedDemoDataIfNeeded(): Promise<void> {
   const alreadySeeded = localStorage.getItem(SEED_KEY)
   if (alreadySeeded) return
-
-  // Kiểm tra nếu đã có dữ liệu thực (không phải lần đầu tiên)
-  const existingNotebooks = await db.notebooks.count()
-  if (existingNotebooks > 0) {
-    localStorage.setItem(SEED_KEY, 'true')
-    return
-  }
 
   await seedDemoData()
   localStorage.setItem(SEED_KEY, 'true')
@@ -274,4 +270,307 @@ async function seedDemoData(): Promise<void> {
     await scheduleRepo.create(schedule)
   }
 
+  // === M3: MindMap Mẫu ===
+  const rootNodeId = 'mm-node-root'
+  const branch1Id = 'mm-node-b1'
+  const branch2Id = 'mm-node-b2'
+  const branch3Id = 'mm-node-b3'
+  const sub11Id = 'mm-node-s11'
+  const sub12Id = 'mm-node-s12'
+  const sub21Id = 'mm-node-s21'
+  const sub31Id = 'mm-node-s31'
+
+  await mindmapRepo.create({
+    name: 'Giải Tích: Đạo Hàm & Khảo Sát Hàm Số',
+    subjectId: mathSubject.id,
+    tags: ['toán', 'giải tích', 'đạo hàm'],
+    isDemo: true,
+    viewport: { x: 0, y: 0, zoom: 0.9 },
+    nodes: [
+      {
+        id: rootNodeId,
+        label: 'Đạo Hàm f\'(x)',
+        color: '#6366f1',
+        formulaLatex: "f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}",
+        notes: 'Khái niệm nền tảng của giải tích toán học',
+        x: 0,
+        y: 200,
+      },
+      {
+        id: branch1Id,
+        label: 'Quy Tắc Đạo Hàm',
+        color: '#3b82f6',
+        parentId: rootNodeId,
+        notes: 'Các công thức tính đạo hàm cơ bản',
+        x: 280,
+        y: 80,
+      },
+      {
+        id: sub11Id,
+        label: 'Hàm Hợp & Tích Thương',
+        color: '#3b82f6',
+        parentId: branch1Id,
+        formulaLatex: "(u \\cdot v)' = u'v + uv'",
+        x: 560,
+        y: 40,
+      },
+      {
+        id: sub12Id,
+        label: 'Bảng Đạo Hàm Cơ Bản',
+        color: '#3b82f6',
+        parentId: branch1Id,
+        formulaLatex: "(x^n)' = n x^{n-1}",
+        x: 560,
+        y: 120,
+      },
+      {
+        id: branch2Id,
+        label: 'Ý Nghĩa Hình Học & Vật Lý',
+        color: '#10b981',
+        parentId: rootNodeId,
+        notes: 'Tiếp tuyến và vận tốc chuyển động',
+        x: 280,
+        y: 200,
+      },
+      {
+        id: sub21Id,
+        label: 'Hệ Số Góc Tiếp Tuyến',
+        color: '#10b981',
+        parentId: branch2Id,
+        formulaLatex: "k = f'(x_0)",
+        notes: 'Phương trình tiếp tuyến: y = f\'(x0)(x - x0) + y0',
+        x: 560,
+        y: 200,
+      },
+      {
+        id: branch3Id,
+        label: 'Ứng Dụng Khảo Sát Cực Trị',
+        color: '#f59e0b',
+        parentId: rootNodeId,
+        notes: 'Tìm cực đại, cực tiểu và điểm uốn',
+        checkItems: [
+          { id: 'c1', text: 'Ôn định lý Fermat về điểm dừng', checked: true },
+          { id: 'c2', text: 'Xét dấu đạo hàm cấp 2 f\'\'(x)', checked: false },
+          { id: 'c3', text: 'Vẽ bảng biến thiên hoàn chỉnh', checked: false },
+        ],
+        x: 280,
+        y: 330,
+      },
+      {
+        id: sub31Id,
+        label: 'Định Lý Giá Trị Trung Bình',
+        color: '#f59e0b',
+        parentId: branch3Id,
+        notes: 'Định lý Rolle & Lagrange',
+        x: 560,
+        y: 330,
+      },
+    ],
+    edges: [
+      { id: 'e-r-b1', source: rootNodeId, target: branch1Id },
+      { id: 'e-r-b2', source: rootNodeId, target: branch2Id },
+      { id: 'e-r-b3', source: rootNodeId, target: branch3Id },
+      { id: 'e-b1-s11', source: branch1Id, target: sub11Id },
+      { id: 'e-b1-s12', source: branch1Id, target: sub12Id },
+      { id: 'e-b2-s21', source: branch2Id, target: sub21Id },
+      { id: 'e-b3-s31', source: branch3Id, target: sub31Id },
+    ],
+  })
+
+  // === M6: Knowledge Graph Mẫu (Toán & Kỹ thuật điện tử) ===
+  const knLimit = await knowledgeNodeRepo.create({
+    title: 'Giới Hạn Hàm Số (Limits)',
+    description: 'Nền tảng của giải tích: xác định hành vi của hàm khi biến tiến dần tới một giá trị.',
+    formulaLatex: '\\lim_{x \\to x_0} f(x) = L',
+    examples: '\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1',
+    references: 'Giáo trình Giải tích 1 - ĐHBK',
+    difficulty: 1,
+    tags: ['giải tích', 'toán'],
+    source: 'Toán cao cấp A1',
+    verified: true,
+    x: 100,
+    y: 100,
+    isDemo: true,
+    subjectId: mathSubject.id,
+  })
+
+  const knDerivative = await knowledgeNodeRepo.create({
+    title: 'Đạo Hàm (Derivative)',
+    description: 'Tốc độ biến thiên tức thời của một hàm số đối với một biến số.',
+    formulaLatex: "f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}",
+    examples: 'Vận tốc là đạo hàm của quãng đường theo thời gian: v(t) = s\'(t)',
+    references: 'James Stewart - Calculus: Early Transcendentals',
+    difficulty: 2,
+    tags: ['giải tích', 'đạo hàm', 'toán'],
+    source: 'Stewart Calculus',
+    verified: true,
+    x: 400,
+    y: 100,
+    isDemo: true,
+    subjectId: mathSubject.id,
+  })
+
+  const knIntegral = await knowledgeNodeRepo.create({
+    title: 'Tích Phân Riemann (Definite Integral)',
+    description: 'Phép toán ngược của đạo hàm, tính diện tích dưới đường cong và giá trị tích lũy.',
+    formulaLatex: '\\int_a^b f(x)\\,dx = F(b) - F(a)',
+    examples: '\\int_0^1 x^2\\,dx = \\frac{1}{3}',
+    references: 'Định lý cơ bản của Giải tích (Newton-Leibniz)',
+    difficulty: 3,
+    tags: ['giải tích', 'tích phân', 'toán'],
+    source: 'Toán cao cấp A1',
+    verified: true,
+    x: 400,
+    y: 300,
+    isDemo: true,
+    subjectId: mathSubject.id,
+  })
+
+  const knDiffEq = await knowledgeNodeRepo.create({
+    title: 'Phương Trình Vi Phân Tuyến Tính Cấp 1',
+    description: 'Phương trình chứa đạo hàm bậc nhất của hàm chưa biết, ứng dụng mô hình hóa hệ thống động lực.',
+    formulaLatex: "\\frac{dy}{dx} + P(x)y = Q(x)",
+    examples: "y' + 2y = e^x \\implies y = Ce^{-2x} + \\frac{1}{3}e^x",
+    references: 'Boyce & DiPrima - Elementary Differential Equations',
+    difficulty: 4,
+    tags: ['phương trình vi phân', 'toán', 'mô hình hóa'],
+    source: 'Vi phân & Tích phân ứng dụng',
+    verified: true,
+    x: 750,
+    y: 180,
+    isDemo: true,
+    subjectId: mathSubject.id,
+  })
+
+  const knLaplace = await knowledgeNodeRepo.create({
+    title: 'Biến Đổi Laplace (Laplace Transform)',
+    description: 'Biến đổi tích phân chuyển phương trình vi phân miền thời gian sang miền tần số phức s.',
+    formulaLatex: '\\mathcal{L}\\{f(t)\\} = F(s) = \\int_0^\\infty e^{-st} f(t)\\,dt',
+    examples: '\\mathcal{L}\\{e^{at}\\} = \\frac{1}{s-a}',
+    references: 'Tín hiệu & Hệ thống, Lý thuyết điều khiển tự động',
+    difficulty: 4,
+    tags: ['laplace', 'tín hiệu', 'toán'],
+    source: 'Kỹ thuật điều khiển hiện đại',
+    verified: true,
+    x: 1050,
+    y: 180,
+    isDemo: true,
+    subjectId: mathSubject.id,
+  })
+
+  const knOhm = await knowledgeNodeRepo.create({
+    title: 'Định Luật Ohm (Ohm\'s Law)',
+    description: 'Mối liên hệ tuyến tính giữa hiệu điện thế, cường độ dòng điện và điện trở thuần.',
+    formulaLatex: 'I = \\frac{U}{R}',
+    examples: 'U = 12V, R = 1k\\Omega \\implies I = 12mA',
+    references: 'Giáo trình Cơ sở Mạch điện',
+    difficulty: 1,
+    tags: ['mạch điện', 'điện tử', 'định luật'],
+    source: 'Cơ sở Kỹ thuật Điện',
+    verified: true,
+    x: 400,
+    y: 480,
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  const knKirchhoff = await knowledgeNodeRepo.create({
+    title: 'Định Luật Kirchhoff (KCL & KVL)',
+    description: 'Bảo toàn điện tích tại nút (KCL) và bảo toàn năng lượng trong vòng kín (KVL).',
+    formulaLatex: '\\sum I_{in} = \\sum I_{out},\\quad \\sum V_{loop} = 0',
+    examples: 'Tổng dòng điện vào một nút mạch bằng tổng dòng điện rời khỏi nút đó.',
+    references: 'Alexander & Sadiku - Fundamentals of Electric Circuits',
+    difficulty: 2,
+    tags: ['mạch điện', 'điện tử', 'kcl', 'kvl'],
+    source: 'Sadiku Fundamentals of Electric Circuits',
+    verified: true,
+    x: 750,
+    y: 480,
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  const knRCTransient = await knowledgeNodeRepo.create({
+    title: 'Quá Trình Quá Độ Mạch RC (RC Transient)',
+    description: 'Đáp ứng nạp và xả của tụ điện theo thời gian, tuân theo phương trình vi phân cấp 1.',
+    formulaLatex: 'v_C(t) = V_{in}\\left(1 - e^{-\\frac{t}{RC}}\\right)',
+    examples: 'Hằng số thời gian \\tau = RC (thời gian nạp đạt ~63.2% điện áp cực đại).',
+    references: 'Mạch điện & Điện tử Tương tự',
+    difficulty: 3,
+    tags: ['mạch điện', 'quá độ', 'tụ điện', 'điện tử'],
+    source: 'Mạch điện 1 - ĐHBK',
+    verified: true,
+    x: 1050,
+    y: 480,
+    isDemo: true,
+    subjectId: electronicsSubject.id,
+  })
+
+  // Knowledge Edges (5 loại quan hệ chuẩn xác)
+  // Prerequisite
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knLimit.id,
+    toNodeId: knDerivative.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knDerivative.id,
+    toNodeId: knDiffEq.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knIntegral.id,
+    toNodeId: knDiffEq.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knDiffEq.id,
+    toNodeId: knLaplace.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knOhm.id,
+    toNodeId: knKirchhoff.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knKirchhoff.id,
+    toNodeId: knRCTransient.id,
+    kind: 'Prerequisite',
+    label: 'Cần học trước',
+    isDemo: true,
+  })
+
+  // Related
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knDerivative.id,
+    toNodeId: knIntegral.id,
+    kind: 'Related',
+    label: 'Phép toán ngược',
+    isDemo: true,
+  })
+
+  // AppliedTo
+  await knowledgeEdgeRepo.create({
+    fromNodeId: knDiffEq.id,
+    toNodeId: knRCTransient.id,
+    kind: 'AppliedTo',
+    label: 'Mô hình hóa quá độ RC',
+    isDemo: true,
+  })
 }

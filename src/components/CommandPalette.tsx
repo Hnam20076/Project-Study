@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useUIStore } from '@/stores/uiStore'
 import { vi } from '@/i18n/vi'
-import { pageRepo, scheduleRepo } from '@/db/repositories'
+import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo } from '@/db/repositories'
 import { debounce, truncate } from '@/lib/utils'
 import type { SearchResult } from '@/types'
 import { cn } from '@/lib/utils'
@@ -28,9 +28,12 @@ export function CommandPalette() {
 
       setLoading(true)
       try {
-        const [pages, schedules] = await Promise.all([
+        const lowerQ = q.toLowerCase()
+        const [pages, schedules, mindmaps, knodes] = await Promise.all([
           pageRepo.searchFullText(q),
           scheduleRepo.getAll(),
+          mindmapRepo.getAll(),
+          knowledgeNodeRepo.getAll(),
         ])
 
         const pageResults: SearchResult[] = pages.map(p => ({
@@ -38,17 +41,17 @@ export function CommandPalette() {
           type: 'note' as const,
           title: p.title || vi.common.untitled,
           subtitle: vi.nav.notes,
-          url: `/notes/${p.sectionId}/${p.id}`,
+          url: `/notes`,
           excerpt: truncate(p.content.replace(/<[^>]+>/g, ' '), 80),
           updatedAt: p.updatedAt,
         }))
 
         const scheduleResults: SearchResult[] = schedules
           .filter(s =>
-            s.className.toLowerCase().includes(q.toLowerCase()) ||
-            (s.teacher?.toLowerCase().includes(q.toLowerCase()) ?? false)
+            s.className.toLowerCase().includes(lowerQ) ||
+            (s.teacher?.toLowerCase().includes(lowerQ) ?? false)
           )
-          .slice(0, 5)
+          .slice(0, 4)
           .map(s => ({
             id: s.id,
             type: 'schedule' as const,
@@ -58,7 +61,40 @@ export function CommandPalette() {
             updatedAt: s.updatedAt,
           }))
 
-        setResults([...pageResults, ...scheduleResults])
+        const mindmapResults: SearchResult[] = mindmaps
+          .filter(m =>
+            m.name.toLowerCase().includes(lowerQ) ||
+            m.nodes.some(n => n.label.toLowerCase().includes(lowerQ))
+          )
+          .slice(0, 4)
+          .map(m => ({
+            id: m.id,
+            type: 'mindmap' as const,
+            title: m.name,
+            subtitle: vi.mindmap.title,
+            url: '/mindmap',
+            excerpt: `${m.nodes.length} nodes · ${m.edges.length} liên kết`,
+            updatedAt: m.updatedAt,
+          }))
+
+        const knowledgeResults: SearchResult[] = knodes
+          .filter(kn =>
+            kn.title.toLowerCase().includes(lowerQ) ||
+            kn.description.toLowerCase().includes(lowerQ) ||
+            kn.tags.some(t => t.toLowerCase().includes(lowerQ))
+          )
+          .slice(0, 5)
+          .map(kn => ({
+            id: kn.id,
+            type: 'knowledge_node' as const,
+            title: kn.title,
+            subtitle: vi.knowledge.title,
+            url: '/knowledge',
+            excerpt: truncate(kn.description, 80),
+            updatedAt: kn.updatedAt,
+          }))
+
+        setResults([...pageResults, ...mindmapResults, ...knowledgeResults, ...scheduleResults])
         setSelectedIndex(0)
       } catch (e) {
         console.error(e)
@@ -204,6 +240,22 @@ export function CommandPalette() {
               >
                 <span className="text-sm text-slate-700 dark:text-slate-300">
                   📅 {vi.dashboard.newSchedule}
+                </span>
+              </button>
+              <button
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-muted transition-colors"
+                onClick={() => { navigate('/mindmap'); handleClose() }}
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  🧠 {vi.mindmap.title}
+                </span>
+              </button>
+              <button
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-muted transition-colors"
+                onClick={() => { navigate('/knowledge'); handleClose() }}
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  🌐 {vi.knowledge.title}
                 </span>
               </button>
             </div>

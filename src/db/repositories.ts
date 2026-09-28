@@ -12,6 +12,9 @@ import type {
   NoteImage,
   EntityType,
   LinkKind,
+  MindMap,
+  KnowledgeNode,
+  KnowledgeEdge,
 } from '@/types'
 
 // Helper tạo timestamp hiện tại
@@ -382,11 +385,109 @@ export const imageRepo = {
   },
 }
 
+// === MindMap Repository (M3) ===
+export const mindmapRepo = {
+  async getAll(): Promise<MindMap[]> {
+    return db.mindmaps.orderBy('updatedAt').reverse().toArray()
+  },
+
+  async getById(id: string): Promise<MindMap | undefined> {
+    return db.mindmaps.get(id)
+  },
+
+  async create(data: Omit<MindMap, 'id' | 'createdAt' | 'updatedAt'>): Promise<MindMap> {
+    const mindmap: MindMap = { ...baseFields(), ...data }
+    await db.mindmaps.add(mindmap)
+    return mindmap
+  },
+
+  async update(id: string, data: Partial<MindMap>): Promise<void> {
+    await db.mindmaps.update(id, { ...data, updatedAt: now() })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.transaction('rw', [db.mindmaps, db.links], async () => {
+      await db.mindmaps.delete(id)
+      await db.links.where('fromId').equals(id).delete()
+      await db.links.where('toId').equals(id).delete()
+    })
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.mindmaps.filter(item => item.isDemo === true).delete()
+  },
+}
+
+// === Knowledge Node Repository (M6) ===
+export const knowledgeNodeRepo = {
+  async getAll(): Promise<KnowledgeNode[]> {
+    return db.knowledgeNodes.orderBy('title').toArray()
+  },
+
+  async getById(id: string): Promise<KnowledgeNode | undefined> {
+    return db.knowledgeNodes.get(id)
+  },
+
+  async create(data: Omit<KnowledgeNode, 'id' | 'createdAt' | 'updatedAt'>): Promise<KnowledgeNode> {
+    const node: KnowledgeNode = { ...baseFields(), ...data }
+    await db.knowledgeNodes.add(node)
+    return node
+  },
+
+  async update(id: string, data: Partial<KnowledgeNode>): Promise<void> {
+    await db.knowledgeNodes.update(id, { ...data, updatedAt: now() })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.transaction('rw', [db.knowledgeNodes, db.knowledgeEdges, db.links], async () => {
+      await db.knowledgeNodes.delete(id)
+      await db.knowledgeEdges.filter(e => e.fromNodeId === id || e.toNodeId === id).delete()
+      await db.links.where('fromId').equals(id).delete()
+      await db.links.where('toId').equals(id).delete()
+    })
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.knowledgeNodes.filter(item => item.isDemo === true).delete()
+  },
+}
+
+// === Knowledge Edge Repository (M6) ===
+export const knowledgeEdgeRepo = {
+  async getAll(): Promise<KnowledgeEdge[]> {
+    return db.knowledgeEdges.toArray()
+  },
+
+  async getByNode(nodeId: string): Promise<KnowledgeEdge[]> {
+    return db.knowledgeEdges.filter(e => e.fromNodeId === nodeId || e.toNodeId === nodeId).toArray()
+  },
+
+  async create(data: Omit<KnowledgeEdge, 'id' | 'createdAt' | 'updatedAt'>): Promise<KnowledgeEdge> {
+    const edge: KnowledgeEdge = {
+      id: uuidv4(),
+      createdAt: now(),
+      updatedAt: now(),
+      ...data,
+    }
+    await db.knowledgeEdges.add(edge)
+    return edge
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.knowledgeEdges.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.knowledgeEdges.filter(item => item.isDemo === true).delete()
+  },
+}
+
 // === Xóa toàn bộ dữ liệu mẫu ===
 export async function deleteAllDemoData(): Promise<void> {
   await db.transaction('rw', [
     db.subjects, db.topics, db.links, db.schedules,
     db.notebooks, db.sections, db.pages, db.noteVersions,
+    db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -395,6 +496,10 @@ export async function deleteAllDemoData(): Promise<void> {
     await notebookRepo.deleteDemoData()
     await sectionRepo.deleteDemoData()
     await pageRepo.deleteDemoData()
+    await mindmapRepo.deleteDemoData()
+    await knowledgeNodeRepo.deleteDemoData()
+    await knowledgeEdgeRepo.deleteDemoData()
+
     // noteVersions của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()
     const allVersions = await db.noteVersions.toArray()

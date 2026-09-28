@@ -72,6 +72,68 @@ const PageSchema = BaseEntitySchema.extend({
   wordCount: z.number().optional(),
 })
 
+const MindMapNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  notes: z.string().optional(),
+  color: z.string(),
+  collapsed: z.boolean().optional(),
+  formulaLatex: z.string().optional(),
+  checkItems: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+    checked: z.boolean(),
+  })).optional(),
+  imageBase64: z.string().optional(),
+  x: z.number(),
+  y: z.number(),
+  parentId: z.string().optional(),
+})
+
+const MindMapEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  label: z.string().optional(),
+})
+
+const MindMapSchema = BaseEntitySchema.extend({
+  name: z.string().min(1),
+  nodes: z.array(MindMapNodeSchema),
+  edges: z.array(MindMapEdgeSchema),
+  viewport: z.object({
+    x: z.number(),
+    y: z.number(),
+    zoom: z.number(),
+  }),
+})
+
+const KnowledgeNodeSchema = BaseEntitySchema.extend({
+  title: z.string().min(1),
+  description: z.string(),
+  formulaLatex: z.string().optional(),
+  examples: z.string().optional(),
+  references: z.string().optional(),
+  difficulty: z.number().min(1).max(5),
+  tags: z.array(z.string()),
+  source: z.string().optional(),
+  sourceUrl: z.string().optional(),
+  verified: z.boolean().optional(),
+  x: z.number(),
+  y: z.number(),
+})
+
+const KnowledgeEdgeSchema = z.object({
+  id: z.string(),
+  fromNodeId: z.string(),
+  toNodeId: z.string(),
+  kind: z.string(),
+  label: z.string().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  isDemo: z.boolean().optional(),
+})
+
 const ExportDataSchema = z.object({
   version: z.number(),
   exportedAt: z.string(),
@@ -89,25 +151,42 @@ const ExportDataSchema = z.object({
     savedAt: z.coerce.date(),
     wordCount: z.number().optional(),
   })),
+  mindmaps: z.array(MindMapSchema).optional(),
+  knowledgeNodes: z.array(KnowledgeNodeSchema).optional(),
+  knowledgeEdges: z.array(KnowledgeEdgeSchema).optional(),
 })
 
-export const EXPORT_VERSION = 1
+export const EXPORT_VERSION = 2
 
 /**
  * Xuất toàn bộ dữ liệu ra JSON
  */
 export async function exportAllData(): Promise<ExportData> {
-  const [subjects, topics, links, schedules, notebooks, sections, pages, noteVersions] =
-    await Promise.all([
-      db.subjects.toArray(),
-      db.topics.toArray(),
-      db.links.toArray(),
-      db.schedules.toArray(),
-      db.notebooks.toArray(),
-      db.sections.toArray(),
-      db.pages.toArray(),
-      db.noteVersions.toArray(),
-    ])
+  const [
+    subjects,
+    topics,
+    links,
+    schedules,
+    notebooks,
+    sections,
+    pages,
+    noteVersions,
+    mindmaps,
+    knowledgeNodes,
+    knowledgeEdges,
+  ] = await Promise.all([
+    db.subjects.toArray(),
+    db.topics.toArray(),
+    db.links.toArray(),
+    db.schedules.toArray(),
+    db.notebooks.toArray(),
+    db.sections.toArray(),
+    db.pages.toArray(),
+    db.noteVersions.toArray(),
+    db.mindmaps.toArray(),
+    db.knowledgeNodes.toArray(),
+    db.knowledgeEdges.toArray(),
+  ])
 
   return {
     version: EXPORT_VERSION,
@@ -120,6 +199,9 @@ export async function exportAllData(): Promise<ExportData> {
     sections,
     pages,
     noteVersions,
+    mindmaps,
+    knowledgeNodes,
+    knowledgeEdges,
   }
 }
 
@@ -135,6 +217,7 @@ export async function importAllData(raw: unknown): Promise<void> {
   await db.transaction('rw', [
     db.subjects, db.topics, db.links, db.schedules,
     db.notebooks, db.sections, db.pages, db.noteVersions,
+    db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -146,6 +229,9 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.sections.clear(),
       db.pages.clear(),
       db.noteVersions.clear(),
+      db.mindmaps.clear(),
+      db.knowledgeNodes.clear(),
+      db.knowledgeEdges.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -157,6 +243,9 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.sections.length > 0) await db.sections.bulkAdd(parsed.sections as never[])
     if (parsed.pages.length > 0) await db.pages.bulkAdd(parsed.pages as never[])
     if (parsed.noteVersions.length > 0) await db.noteVersions.bulkAdd(parsed.noteVersions as never[])
+    if (parsed.mindmaps && parsed.mindmaps.length > 0) await db.mindmaps.bulkAdd(parsed.mindmaps as never[])
+    if (parsed.knowledgeNodes && parsed.knowledgeNodes.length > 0) await db.knowledgeNodes.bulkAdd(parsed.knowledgeNodes as never[])
+    if (parsed.knowledgeEdges && parsed.knowledgeEdges.length > 0) await db.knowledgeEdges.bulkAdd(parsed.knowledgeEdges as never[])
   })
 }
 

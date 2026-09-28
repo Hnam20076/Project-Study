@@ -3,6 +3,8 @@ import {
   LayoutDashboard,
   Calendar,
   BookOpen,
+  Network,
+  Globe2,
   ChevronLeft,
   ChevronRight,
   Moon,
@@ -25,7 +27,8 @@ const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: vi.nav.dashboard, enabled: true },
   { path: '/schedule', icon: Calendar, label: vi.nav.schedule, enabled: true },
   { path: '/notes', icon: BookOpen, label: vi.nav.notes, enabled: true },
-  // Phase 2+: mindmap, quiz, calculator, knowledge, components
+  { path: '/mindmap', icon: Network, label: vi.nav.mindmap, enabled: true },
+  { path: '/knowledge', icon: Globe2, label: vi.nav.knowledge, enabled: true },
 ]
 
 export function Sidebar() {

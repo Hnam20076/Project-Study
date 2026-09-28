@@ -62,6 +62,7 @@ export default defineConfig({
         manualChunks: {
           // Tách vendor để tối ưu cache
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'flow-vendor': ['@xyflow/react'],
           'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit'],
           'math-vendor': ['katex', 'mathjs'],
           'ui-vendor': ['lucide-react', 'clsx', 'tailwind-merge'],

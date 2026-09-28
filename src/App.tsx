@@ -5,6 +5,8 @@ import { CommandPalette } from '@/components/CommandPalette'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { SchedulePage } from '@/features/schedule/SchedulePage'
 import { NotesPage } from '@/features/notes/NotesPage'
+import { MindMapPage } from '@/features/mindmap/MindMapPage'
+import { KnowledgePage } from '@/features/knowledge/KnowledgePage'
 import { useThemeStore } from '@/stores/uiStore'
 
 export default function App() {
@@ -30,7 +32,8 @@ export default function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="schedule/*" element={<SchedulePage />} />
           <Route path="notes/*" element={<NotesPage />} />
-          {/* Phase 2+ routes - chưa enable */}
+          <Route path="mindmap/*" element={<MindMapPage />} />
+          <Route path="knowledge/*" element={<KnowledgePage />} />
         </Route>
       </Routes>
     </>

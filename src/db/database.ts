@@ -9,10 +9,13 @@ import type {
   NotePage,
   NoteVersion,
   NoteImage,
+  MindMap,
+  KnowledgeNode,
+  KnowledgeEdge,
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -29,13 +32,14 @@ class StudyOSDatabase extends Dexie {
   pages!: Table<NotePage>
   noteVersions!: Table<NoteVersion>
   noteImages!: Table<NoteImage>
+  mindmaps!: Table<MindMap>
+  knowledgeNodes!: Table<KnowledgeNode>
+  knowledgeEdges!: Table<KnowledgeEdge>
 
   constructor() {
     super('StudyOSDatabase')
 
-    this.version(DB_VERSION).stores({
-      // Khai báo index cho từng bảng
-      // id là primary key
+    this.version(1).stores({
       subjects: 'id, name, isDemo, createdAt',
       topics: 'id, subjectId, name, isDemo, createdAt',
       links: 'id, fromId, toId, fromType, toType, kind, isDemo',
@@ -45,6 +49,12 @@ class StudyOSDatabase extends Dexie {
       pages: 'id, sectionId, notebookId, title, order, isDemo, updatedAt',
       noteVersions: 'id, pageId, savedAt',
       noteImages: 'id, pageId, createdAt',
+    })
+
+    this.version(DB_VERSION).stores({
+      mindmaps: 'id, name, isDemo, createdAt, updatedAt',
+      knowledgeNodes: 'id, title, difficulty, isDemo, createdAt, updatedAt',
+      knowledgeEdges: 'id, fromNodeId, toNodeId, kind, isDemo',
     })
   }
 }
