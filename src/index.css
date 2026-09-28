@@ -147,8 +147,7 @@
 
   /* TipTap editor styles */
   .tiptap-editor {
-    @apply min-h-[200px] prose prose-slate dark:prose-invert max-w-none;
-    @apply focus:outline-none;
+    @apply min-h-[200px] max-w-none focus:outline-none;
   }
 
   .tiptap-editor p.is-empty:first-child::before {
