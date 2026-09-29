@@ -111,7 +111,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sidebar flex-shrink-0 select-none',
+        'sidebar flex-shrink-0 select-none relative !overflow-visible',
         sidebarCollapsed && 'collapsed'
       )}
     >
