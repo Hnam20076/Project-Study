@@ -107,3 +107,25 @@ export function minutesUntilClass(startTime: string): number {
   const start = timeToMinutes(startTime)
   return start - nowMinutes
 }
+
+// Loại bỏ cú pháp LaTeX khỏi chuỗi hiển thị
+export function stripLatex(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+    .replace(/\\times/g, '×')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\le(q)?/g, '≤')
+    .replace(/\\ge(q)?/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\pm/g, '±')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\[a-zA-Z]+\{([^}]+)\}/g, '$1')
+    .replace(/\\[a-zA-Z]+/g, '')
+    .replace(/\$+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+

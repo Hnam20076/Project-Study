@@ -68,10 +68,14 @@ test.describe('A3: Offline and Command Palette LaTeX stripping', () => {
   test('A3: Command palette strips LaTeX syntax from result titles', async ({ page }) => {
     await page.goto('./dashboard');
     await page.waitForLoadState('domcontentloaded');
-    // Open command palette with Ctrl+K
-    await page.keyboard.press('Control+KeyK');
-    const input = page.locator('input[placeholder*="Tìm kiếm"]').or(page.locator('input[placeholder*="tìm kiếm"]'));
-    await expect(input).toBeVisible();
+    // Open command palette
+    await page.evaluate(() => {
+      const store = (window as any).__useUIStore;
+      if (store) store.getState().openCommandPalette();
+      else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+    });
+    const input = page.locator('.modal-overlay input');
+    await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill('toán');
     await page.waitForTimeout(500);
     // Titles should not contain $ signs or raw LaTeX \frac

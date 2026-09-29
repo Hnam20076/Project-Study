@@ -11,7 +11,7 @@ export function AppLayout() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       // Ctrl+K = Command palette
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         useUIStore.getState().openCommandPalette()
       }

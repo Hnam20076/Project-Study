@@ -4,7 +4,7 @@ import { Search, X } from 'lucide-react'
 import { useUIStore } from '@/stores/uiStore'
 import { vi } from '@/i18n/vi'
 import { pageRepo, scheduleRepo, mindmapRepo, knowledgeNodeRepo, questionRepo, formulaRepo, componentRepo } from '@/db/repositories'
-import { debounce, truncate } from '@/lib/utils'
+import { debounce, truncate, stripLatex } from '@/lib/utils'
 import type { SearchResult } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -106,7 +106,7 @@ export function CommandPalette() {
           .map(qu => ({
             id: qu.id,
             type: 'question' as const,
-            title: truncate(qu.prompt.replace(/\$/g, ''), 50),
+            title: truncate(stripLatex(qu.prompt), 50),
             subtitle: vi.quiz.title,
             url: '/quiz',
             excerpt: truncate(qu.explanation, 80),
@@ -123,7 +123,7 @@ export function CommandPalette() {
           .map(fo => ({
             id: fo.id,
             type: 'formula' as const,
-            title: fo.name,
+            title: stripLatex(fo.name),
             subtitle: vi.calculator.title,
             url: '/calculator',
             excerpt: fo.latex,
