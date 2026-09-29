@@ -21,21 +21,20 @@ export function AppLayout() {
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-dark-bg">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-slate-50 dark:bg-dark-bg">
       {/* Sidebar - hiện trên desktop */}
-      <div className="hidden md:flex flex-shrink-0">
+      <div className="hidden md:flex flex-shrink-0 h-full relative">
         <Sidebar />
       </div>
 
       {/* Main content */}
       <main
-        className="flex-1 overflow-y-auto"
+        className="flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-hidden relative"
         style={{
           transition: 'margin-left 0.2s ease',
         }}
       >
-        {/* Header padding để không bị che */}
-        <div className="min-h-screen pb-20 md:pb-0">
+        <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-y-auto pb-16 md:pb-0">
           <Outlet />
         </div>
       </main>
