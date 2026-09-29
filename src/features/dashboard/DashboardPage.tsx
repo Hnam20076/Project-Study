@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, BookOpen, Clock, Plus, Zap, Network, GraduationCap, Calculator, Globe2, Cpu } from 'lucide-react'
-import { scheduleRepo, pageRepo } from '@/db/repositories'
+import { scheduleRepo, pageRepo, semesterRepo } from '@/db/repositories'
 import { vi } from '@/i18n/vi'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { formatRelative, getDayName, isCurrentlyOngoing, minutesUntilClass } from '@/lib/utils'
+import { dateToWeekNumber, getEffectiveRoom, isScheduleInWeek } from '@/services/schedule'
 import { useEffect, useState } from 'react'
 import type { ScheduleEntry, NotePage } from '@/types'
 
@@ -20,7 +21,13 @@ function getTodayDayOfWeek(): number {
 }
 
 // Widget hiển thị tiết học hiện tại / tiếp theo
-function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
+function NextClassWidget({
+  schedules,
+  currentWeek,
+}: {
+  schedules: ScheduleEntry[]
+  currentWeek: number | null
+}) {
   const [, setTick] = useState(0)
 
   // Re-render mỗi phút để cập nhật đồng hồ
@@ -31,13 +38,14 @@ function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
 
   const today = getTodayDayOfWeek()
   const todayClasses = schedules
-    .filter(s => s.dayOfWeek === today)
+    .filter(s => s.dayOfWeek === today && isScheduleInWeek(s, currentWeek))
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
   const ongoing = todayClasses.find(s => isCurrentlyOngoing(s.startTime, s.endTime))
   const upcoming = todayClasses.find(s => minutesUntilClass(s.startTime) > 0)
 
   if (ongoing) {
+    const effectiveRoom = getEffectiveRoom(ongoing, currentWeek)
     return (
       <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-800">
         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
@@ -51,7 +59,7 @@ function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
             {ongoing.className}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            {ongoing.startTime} – {ongoing.endTime} · {ongoing.room ?? ''}
+            {ongoing.startTime} – {ongoing.endTime} · {effectiveRoom ?? ''}
           </div>
         </div>
       </div>
@@ -62,6 +70,7 @@ function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
     const minsLeft = minutesUntilClass(upcoming.startTime)
     const hoursLeft = Math.floor(minsLeft / 60)
     const mins = minsLeft % 60
+    const effectiveRoom = getEffectiveRoom(upcoming, currentWeek)
 
     return (
       <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
@@ -76,7 +85,7 @@ function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
             {upcoming.className}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            {upcoming.startTime} – {upcoming.endTime} · {upcoming.room ?? ''}
+            {upcoming.startTime} – {upcoming.endTime} · {effectiveRoom ?? ''}
           </div>
         </div>
       </div>
@@ -91,10 +100,16 @@ function NextClassWidget({ schedules }: { schedules: ScheduleEntry[] }) {
 }
 
 // Card tiết học hôm nay
-function TodayScheduleCard({ schedules }: { schedules: ScheduleEntry[] }) {
+function TodayScheduleCard({
+  schedules,
+  currentWeek,
+}: {
+  schedules: ScheduleEntry[]
+  currentWeek: number | null
+}) {
   const today = getTodayDayOfWeek()
   const todayClasses = schedules
-    .filter(s => s.dayOfWeek === today)
+    .filter(s => s.dayOfWeek === today && isScheduleInWeek(s, currentWeek))
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
   if (todayClasses.length === 0) {
@@ -109,6 +124,7 @@ function TodayScheduleCard({ schedules }: { schedules: ScheduleEntry[] }) {
     <div className="space-y-2">
       {todayClasses.map(cls => {
         const isOngoing = isCurrentlyOngoing(cls.startTime, cls.endTime)
+        const effectiveRoom = getEffectiveRoom(cls, currentWeek)
         return (
           <div
             key={cls.id}
@@ -131,7 +147,7 @@ function TodayScheduleCard({ schedules }: { schedules: ScheduleEntry[] }) {
               </div>
               <div className="text-xs text-slate-500">
                 {cls.startTime} – {cls.endTime}
-                {cls.room && ` · ${cls.room}`}
+                {effectiveRoom && ` · ${effectiveRoom}`}
               </div>
             </div>
           </div>
@@ -178,13 +194,15 @@ function DashboardContent() {
   const navigate = useNavigate()
   const schedules = useLiveQuery(() => scheduleRepo.getAll(), []) ?? []
   const recentPages = useLiveQuery(() => pageRepo.getRecent(5), []) ?? []
+  const currentSemester = useLiveQuery(() => semesterRepo.getCurrent(), [])
 
   const today = new Date()
+  const currentWeek = dateToWeekNumber(today, currentSemester)
   const dayName = getDayName(today.getDay())
   const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`
 
-  // Tổng số tiết tuần này
-  const weeklyCount = schedules.filter(s => s.dayOfWeek !== 0 && s.dayOfWeek !== 6).length
+  // Tổng số tiết tuần này (chỉ đếm các tiết diễn ra trong tuần học hiện tại)
+  const weeklyCount = schedules.filter(s => s.dayOfWeek !== 0 && s.dayOfWeek !== 6 && isScheduleInWeek(s, currentWeek)).length
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
@@ -219,7 +237,7 @@ function DashboardContent() {
             </span>
           </div>
           <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {schedules.filter(s => s.dayOfWeek === today.getDay()).length}
+            {schedules.filter(s => s.dayOfWeek === today.getDay() && isScheduleInWeek(s, currentWeek)).length}
           </div>
           <div className="text-xs text-slate-500">tiết hôm nay</div>
         </div>
@@ -267,9 +285,9 @@ function DashboardContent() {
               Xem tất cả
             </button>
           </div>
-          <NextClassWidget schedules={schedules} />
+          <NextClassWidget schedules={schedules} currentWeek={currentWeek} />
           <div className="mt-3">
-            <TodayScheduleCard schedules={schedules} />
+            <TodayScheduleCard schedules={schedules} currentWeek={currentWeek} />
           </div>
         </div>
 

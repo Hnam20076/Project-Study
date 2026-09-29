@@ -87,3 +87,31 @@ export function isDateInSemester(
 ): boolean {
   return dateToWeekNumber(date, semester) !== null
 }
+
+/**
+ * Lấy phòng học hiệu lực theo tuần (ưu tiên weekOverrides)
+ */
+export function getEffectiveRoom(
+  entry: { room?: string; weekOverrides?: Record<number, { room?: string }> },
+  weekNumber?: number | null
+): string | undefined {
+  if (weekNumber && entry.weekOverrides && entry.weekOverrides[weekNumber]?.room !== undefined) {
+    return entry.weekOverrides[weekNumber]?.room
+  }
+  return entry.room
+}
+
+/**
+ * Kiểm tra tiết học có diễn ra trong tuần được chỉ định không
+ * Quy ước: rỗng weeks = học tất cả các tuần
+ * Nếu weekNumber là null hoặc không truyền: coi như phù hợp
+ */
+export function isScheduleInWeek(
+  entry: { weeks?: number[] },
+  weekNumber?: number | null
+): boolean {
+  if (weekNumber === null || weekNumber === undefined || !entry.weeks || entry.weeks.length === 0) {
+    return true
+  }
+  return entry.weeks.includes(weekNumber)
+}

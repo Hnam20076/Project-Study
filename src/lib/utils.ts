@@ -35,17 +35,26 @@ export function timeToMinutes(time: string): number {
   return h * 60 + m
 }
 
-// Kiểm tra hai tiết học có trùng nhau không
+// Kiểm tra hai tiết học có trùng nhau không (xét cùng thứ, giao giờ VÀ giao nhau ở ít nhất 1 tuần)
 export function hasTimeConflict(
-  a: { startTime: string; endTime: string; dayOfWeek: number },
-  b: { startTime: string; endTime: string; dayOfWeek: number }
+  a: { startTime: string; endTime: string; dayOfWeek: number; weeks?: number[] },
+  b: { startTime: string; endTime: string; dayOfWeek: number; weeks?: number[] }
 ): boolean {
   if (a.dayOfWeek !== b.dayOfWeek) return false
   const aStart = timeToMinutes(a.startTime)
   const aEnd = timeToMinutes(a.endTime)
   const bStart = timeToMinutes(b.startTime)
   const bEnd = timeToMinutes(b.endTime)
-  return aStart < bEnd && bStart < aEnd
+  const timeOverlap = aStart < bEnd && bStart < aEnd
+  if (!timeOverlap) return false
+
+  // Kiểm tra giao tuần: nếu một trong hai rỗng hoặc undefined => học mọi tuần => coi như giao tuần
+  const aWeeks = a.weeks ?? []
+  const bWeeks = b.weeks ?? []
+  if (aWeeks.length === 0 || bWeeks.length === 0) return true
+
+  // Cả hai đều có danh sách tuần: chỉ trùng khi có ít nhất 1 tuần chung
+  return aWeeks.some(w => bWeeks.includes(w))
 }
 
 // Debounce function
