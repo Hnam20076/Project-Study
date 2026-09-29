@@ -53,8 +53,15 @@ export interface Link extends BaseEntity {
   label?: string
 }
 
-// === Thời khóa biểu (M1) ===
+// === Thời khóa biểu (M1) & Học kỳ ===
 export type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6  // 0 = Chủ nhật, 1-6 = Thứ 2-7
+
+export interface Semester extends BaseEntity {
+  name: string            // Tên học kỳ, vd: "HK1 2026-2027"
+  startDate: Date         // Ngày bắt đầu (Thứ 2 Tuần 1)
+  weeksCount: number      // Số tuần trong học kỳ (vd: 16)
+  isCurrent?: boolean     // Đánh dấu học kỳ đang hoạt động
+}
 
 export interface ScheduleEntry extends BaseEntity {
   className: string       // Tên môn
