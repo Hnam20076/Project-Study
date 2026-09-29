@@ -21,6 +21,7 @@ import type {
   CalcHistoryItem,
   ElectronicComponent,
   ComponentCategory,
+  StoredExamSession,
 } from '@/types'
 
 // Helper tạo timestamp hiện tại
@@ -712,4 +713,46 @@ export async function deleteAllDemoData(): Promise<void> {
       await db.noteVersions.bulkDelete(orphanVersionIds)
     }
   })
+}
+
+// === Exam Session Repository (Durable Exam Sessions) ===
+export const examSessionRepo = {
+  async getActive(): Promise<StoredExamSession | undefined> {
+    const list = await db.examSessions.toArray()
+    const nowTime = Date.now()
+    const active = list.find(s => !s.isSubmitted && new Date(s.expiresAt).getTime() > nowTime)
+    return active
+  },
+
+  async save(session: StoredExamSession): Promise<void> {
+    await db.examSessions.put(session)
+  },
+
+  async update(id: string, data: Partial<StoredExamSession>): Promise<void> {
+    await db.examSessions.update(id, { ...data, updatedAt: now() })
+  },
+
+  async markSubmitted(id: string): Promise<boolean> {
+    return await db.transaction('rw', db.examSessions, async () => {
+      const sess = await db.examSessions.get(id)
+      if (!sess || sess.isSubmitted) return false
+      await db.examSessions.update(id, { isSubmitted: true, updatedAt: now() })
+      return true
+    })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.examSessions.delete(id)
+  },
+
+  async clearExpired(): Promise<void> {
+    const nowTime = Date.now()
+    const list = await db.examSessions.toArray()
+    const expiredIds = list
+      .filter(s => s.isSubmitted || new Date(s.expiresAt).getTime() <= nowTime)
+      .map(s => s.id)
+    if (expiredIds.length > 0) {
+      await db.examSessions.bulkDelete(expiredIds)
+    }
+  },
 }

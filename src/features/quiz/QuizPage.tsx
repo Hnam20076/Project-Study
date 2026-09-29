@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { questionRepo, examAttemptRepo, subjectRepo, topicRepo } from '@/db/repositories'
+import { questionRepo, examAttemptRepo, subjectRepo, topicRepo, examSessionRepo } from '@/db/repositories'
 import { QuestionModal } from './QuestionModal'
 import { KnowledgeGapReport } from './KnowledgeGapReport'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -54,6 +54,33 @@ export const QuizContent: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0) // giây
   const [examTitle, setExamTitle] = useState('')
   const [currentAttempt, setCurrentAttempt] = useState<ExamAttempt | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [expiresAtDate, setExpiresAtDate] = useState<Date | null>(null)
+
+  // Khôi phục phiên thi đang làm dở (Durable Exam Session)
+  useEffect(() => {
+    examSessionRepo.getActive().then(active => {
+      if (active && active.questions && active.questions.length > 0) {
+        const remaining = Math.max(0, Math.floor((new Date(active.expiresAt).getTime() - Date.now()) / 1000))
+        if (remaining > 0) {
+          setSessionId(active.id)
+          setExamTitle(active.title)
+          setSelectedSubjectId(active.subjectId)
+          setExamQuestions(active.questions)
+          setCurrentQIndex(active.currentQIndex || 0)
+          setUserAnswers(active.userAnswers || {})
+          setFlaggedQuestions(new Set(active.flaggedQuestionIds || []))
+          setExpiresAtDate(new Date(active.expiresAt))
+          setTimeLeft(remaining)
+          setIsExamActive(true)
+          setExamCompleted(false)
+          toast.info('Đã khôi phục phiên thi đang làm dở!')
+        } else {
+          examSessionRepo.clearExpired()
+        }
+      }
+    }).catch(console.error)
+  }, [])
 
   // Cấu hình đề thi
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
@@ -96,30 +123,39 @@ export const QuizContent: React.FC = () => {
     }
   }
 
-  // Timer đếm ngược khi đang thi
+  // Timer đếm ngược khi đang thi dựa trên expiresAt thực tế (chống trôi timer khi F5)
   useEffect(() => {
-    if (!isExamActive || timeLeft <= 0) return
+    if (!isExamActive || !expiresAtDate) return
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          toast.warning(vi.quiz.timeUp)
-          handleSubmitExam()
-          return 0
-        }
-        if (prev === 300) {
-          toast.warning('Còn 5 phút! Hãy kiểm tra lại các câu phân vân.')
-        }
-        return prev - 1
-      })
-    }, 1000)
+    const updateTimer = () => {
+      const remaining = Math.max(0, Math.floor((expiresAtDate.getTime() - Date.now()) / 1000))
+      setTimeLeft(remaining)
+      if (remaining <= 0) {
+        toast.warning(vi.quiz.timeUp)
+        handleSubmitExam()
+      } else if (remaining === 300) {
+        toast.warning('Còn 5 phút! Hãy kiểm tra lại các câu phân vân.')
+      }
+    }
 
+    updateTimer()
+    const timer = setInterval(updateTimer, 1000)
     return () => clearInterval(timer)
-  }, [isExamActive, timeLeft])
+  }, [isExamActive, expiresAtDate])
+
+  // Tự động lưu tiến độ làm bài thi (câu hiện tại, đáp án, cờ) vào Dexie
+  useEffect(() => {
+    if (isExamActive && sessionId) {
+      examSessionRepo.update(sessionId, {
+        currentQIndex,
+        userAnswers,
+        flaggedQuestionIds: Array.from(flaggedQuestions),
+      }).catch(console.error)
+    }
+  }, [isExamActive, sessionId, currentQIndex, userAnswers, flaggedQuestions])
 
   // Bắt đầu làm bài thi
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
     try {
       if (availableQuestions.length === 0) {
         toast.error('Chưa có câu hỏi nào cho môn học này! Vui lòng chọn môn khác hoặc nạp bộ câu hỏi.')
@@ -135,6 +171,11 @@ export const QuizContent: React.FC = () => {
         ? `Đề luyện thi: Tất cả môn học (${selected.length} câu)`
         : `Đề luyện thi: ${sub.name} (${selected.length} câu)`
 
+      const newSessionId = `session-${Date.now()}`
+      const expDate = new Date(Date.now() + selectedDuration * 60 * 1000)
+
+      setSessionId(newSessionId)
+      setExpiresAtDate(expDate)
       setExamQuestions(selected)
       setExamTitle(title)
       setCurrentQIndex(0)
@@ -144,6 +185,24 @@ export const QuizContent: React.FC = () => {
       setIsExamActive(true)
       setExamCompleted(false)
       setCurrentAttempt(null)
+
+      // Lưu phiên thi vào Dexie để đảm bảo phục hồi khi F5
+      await examSessionRepo.save({
+        id: newSessionId,
+        title,
+        subjectId: selectedSubjectId || 'all',
+        questions: selected,
+        currentQIndex: 0,
+        userAnswers: {},
+        flaggedQuestionIds: [],
+        durationSeconds: selectedDuration * 60,
+        startedAt: new Date(),
+        expiresAt: expDate,
+        isSubmitted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        tags: ['luyện thi'],
+      })
     } catch (err) {
       console.error('Lỗi khi bắt đầu thi:', err)
       toast.error('Không thể tạo đề thi: ' + (err instanceof Error ? err.message : String(err)))
@@ -153,6 +212,13 @@ export const QuizContent: React.FC = () => {
   // Nộp bài thi
   const handleSubmitExam = async () => {
     try {
+      if (sessionId) {
+        const canSubmit = await examSessionRepo.markSubmitted(sessionId)
+        if (!canSubmit) {
+          return // Đã nộp hoặc đang nộp, tránh tạo trùng bản ghi
+        }
+      }
+
       setIsExamActive(false)
       setExamCompleted(true)
 
@@ -644,6 +710,8 @@ export const QuizContent: React.FC = () => {
                     onClick={() => {
                       setExamCompleted(false)
                       setIsExamActive(false)
+                      setSessionId(null)
+                      setExpiresAtDate(null)
                     }}
                     className="btn-primary text-xs flex items-center gap-1.5"
                   >

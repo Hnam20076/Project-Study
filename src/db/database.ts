@@ -17,10 +17,11 @@ import type {
   Formula,
   CalcHistoryItem,
   ElectronicComponent,
+  StoredExamSession,
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -45,6 +46,7 @@ class StudyOSDatabase extends Dexie {
   formulas!: Table<Formula>
   calcHistory!: Table<CalcHistoryItem>
   electronicComponents!: Table<ElectronicComponent>
+  examSessions!: Table<StoredExamSession>
 
   constructor() {
     super('StudyOSDatabase')
@@ -78,8 +80,14 @@ class StudyOSDatabase extends Dexie {
       electronicComponents: 'id, name, code, category, package, isDemo, createdAt',
     })
 
-    this.version(DB_VERSION).stores({
+    this.version(5).stores({
       topics: 'id, subjectId, name, order, isDemo, createdAt',
+    })
+
+    this.version(DB_VERSION).stores({
+      examSessions: 'id, subjectId, createdAt, expiresAt',
+    }).upgrade(() => {
+      // Version 6 migration: khởi tạo bảng examSessions
     })
   }
 }

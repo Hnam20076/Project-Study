@@ -59,6 +59,19 @@ export interface ExamAttempt extends BaseEntity {
   topicBreakdown: TopicGapAnalysis[]
 }
 
+export interface StoredExamSession extends BaseEntity {
+  title: string
+  subjectId: string
+  questions: Question[]
+  currentQIndex: number
+  userAnswers: Record<string, string | string[]>
+  flaggedQuestionIds: string[]
+  durationSeconds: number
+  startedAt: Date
+  expiresAt: Date
+  isSubmitted: boolean
+}
+
 // === M5: Máy tính công thức & Giải bài tập từng bước ===
 
 export type FormulaCategory = 'math' | 'physics' | 'electronics' | 'custom'
