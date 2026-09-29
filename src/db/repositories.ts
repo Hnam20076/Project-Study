@@ -80,11 +80,13 @@ export const subjectRepo = {
 // === Topic Repository ===
 export const topicRepo = {
   async getAll(): Promise<Topic[]> {
-    return db.topics.orderBy('order').toArray()
+    const list = await db.topics.toArray()
+    return list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   },
 
   async getBySubject(subjectId: string): Promise<Topic[]> {
-    return db.topics.where('subjectId').equals(subjectId).sortBy('order')
+    const list = await db.topics.where('subjectId').equals(subjectId).toArray()
+    return list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   },
 
   async getById(id: string): Promise<Topic | undefined> {

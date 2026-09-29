@@ -269,7 +269,7 @@ const ExportDataSchema = z.object({
   electronicComponents: z.array(ElectronicComponentSchema).optional(),
 })
 
-export const EXPORT_VERSION = 4
+export const EXPORT_VERSION = 5
 
 /**
  * Xuất toàn bộ dữ liệu ra JSON

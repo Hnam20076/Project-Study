@@ -20,7 +20,7 @@ import type {
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -51,7 +51,7 @@ class StudyOSDatabase extends Dexie {
 
     this.version(1).stores({
       subjects: 'id, name, isDemo, createdAt',
-      topics: 'id, subjectId, name, isDemo, createdAt',
+      topics: 'id, subjectId, name, order, isDemo, createdAt',
       links: 'id, fromId, toId, fromType, toType, kind, isDemo',
       schedules: 'id, className, dayOfWeek, isDemo, createdAt',
       notebooks: 'id, name, order, isDemo, createdAt',
@@ -74,8 +74,12 @@ class StudyOSDatabase extends Dexie {
       calcHistory: 'id, createdAt',
     })
 
-    this.version(DB_VERSION).stores({
+    this.version(4).stores({
       electronicComponents: 'id, name, code, category, package, isDemo, createdAt',
+    })
+
+    this.version(DB_VERSION).stores({
+      topics: 'id, subjectId, name, order, isDemo, createdAt',
     })
   }
 }

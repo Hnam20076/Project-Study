@@ -14,7 +14,7 @@ import {
 } from './repositories'
 
 // Cờ kiểm tra đã seed chưa (lưu localStorage thay vì IndexedDB để kiểm tra nhanh)
-const SEED_KEY = 'study_os_seeded_v4'
+const SEED_KEY = 'study_os_seeded_v5'
 
 /**
  * Nạp dữ liệu mẫu tiếng Việt khi khởi chạy lần đầu
