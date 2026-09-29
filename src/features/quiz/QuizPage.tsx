@@ -24,6 +24,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { seedDemoData } from '@/db/seed'
+import { scoreAnswer, fisherYatesShuffle } from '@/services/scoring'
 import { toast } from 'sonner'
 import type {
   Question,
@@ -48,7 +49,7 @@ export const QuizContent: React.FC = () => {
   const [examCompleted, setExamCompleted] = useState(false)
   const [examQuestions, setExamQuestions] = useState<Question[]>([])
   const [currentQIndex, setCurrentQIndex] = useState(0)
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({})
+  const [userAnswers, setUserAnswers] = useState<Record<string, string | string[]>>({})
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set())
   const [timeLeft, setTimeLeft] = useState(0) // giây
   const [examTitle, setExamTitle] = useState('')
@@ -125,8 +126,8 @@ export const QuizContent: React.FC = () => {
         return
       }
 
-      // Trộn ngẫu nhiên câu hỏi (Fisher-Yates)
-      const shuffled = [...availableQuestions].sort(() => 0.5 - Math.random())
+      // Trộn ngẫu nhiên câu hỏi bằng Fisher-Yates chuẩn xác
+      const shuffled = fisherYatesShuffle(availableQuestions)
       const selected = shuffled.slice(0, Math.min(selectedNumQuestions, availableQuestions.length))
 
       const sub = subjects.find(s => s.id === selectedSubjectId)
@@ -162,7 +163,7 @@ export const QuizContent: React.FC = () => {
 
       examQuestions.forEach(q => {
         const userAns = userAnswers[q.id]
-        const isCorrect = userAns !== undefined && userAns === q.correctAnswer
+        const { isCorrect } = scoreAnswer(q, userAns)
         if (isCorrect) correctTotal++
 
         records.push({
@@ -478,27 +479,57 @@ export const QuizContent: React.FC = () => {
                   {/* Options */}
                   {currentQ.options && currentQ.options.length > 0 && (
                     <div className="space-y-2.5 pt-2">
+                      <div className="text-xs text-slate-500 mb-1 font-medium">
+                        {currentQ.type === 'multiple' ? 'Chọn tất cả đáp án đúng (có thể chọn nhiều):' : 'Chọn 1 đáp án đúng:'}
+                      </div>
                       {currentQ.options.map((opt, idx) => {
                         const letter = String.fromCharCode(65 + idx)
-                        const isSelected = userAnswers[currentQ.id] === opt.id
+                        const isMultiple = currentQ.type === 'multiple'
+                        const isSelected = isMultiple
+                          ? Array.isArray(userAnswers[currentQ.id]) && (userAnswers[currentQ.id] as string[]).includes(opt.id)
+                          : userAnswers[currentQ.id] === opt.id
+
+                        const handleSelectOption = () => {
+                          if (isMultiple) {
+                            const cur = Array.isArray(userAnswers[currentQ.id]) ? (userAnswers[currentQ.id] as string[]) : []
+                            const next = cur.includes(opt.id)
+                              ? cur.filter(id => id !== opt.id)
+                              : [...cur, opt.id]
+                            setUserAnswers(prev => ({ ...prev, [currentQ.id]: next }))
+                          } else {
+                            setUserAnswers(prev => ({ ...prev, [currentQ.id]: opt.id }))
+                          }
+                        }
 
                         return (
                           <div
                             key={opt.id}
-                            onClick={() =>
-                              setUserAnswers(prev => ({ ...prev, [currentQ.id]: opt.id }))
-                            }
+                            role={isMultiple ? "checkbox" : "radio"}
+                            aria-checked={isSelected}
+                            tabIndex={0}
+                            onClick={handleSelectOption}
+                            onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handleSelectOption(); } }}
                             className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 text-xs ${
                               isSelected
                                 ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-950/30 text-primary-900 dark:text-primary-100 font-semibold ring-1 ring-primary-500'
                                 : 'border-slate-200 dark:border-dark-border hover:bg-slate-50 dark:hover:bg-dark-muted text-slate-700 dark:text-slate-300'
                             }`}
                           >
-                            <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                              isSelected ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-dark-border text-slate-600'
-                            }`}>
-                              {letter}
-                            </span>
+                            {isMultiple ? (
+                              <span className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs flex-shrink-0 border transition-colors ${
+                                isSelected
+                                  ? 'bg-primary-600 border-primary-600 text-white'
+                                  : 'border-slate-300 dark:border-dark-border bg-white dark:bg-dark-card text-transparent'
+                              }`}>
+                                ✓
+                              </span>
+                            ) : (
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                                isSelected ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-dark-border text-slate-600'
+                              }`}>
+                                {letter}
+                              </span>
+                            )}
                             <div className="flex-1 mt-0.5">
                               <KatexMath math={opt.text} />
                             </div>
@@ -517,11 +548,12 @@ export const QuizContent: React.FC = () => {
                       <input
                         type="text"
                         className="input text-xs font-mono max-w-xs"
-                        value={userAnswers[currentQ.id] || ''}
+                        value={typeof userAnswers[currentQ.id] === 'string' ? (userAnswers[currentQ.id] as string) : ''}
                         onChange={e =>
                           setUserAnswers(prev => ({ ...prev, [currentQ.id]: e.target.value }))
                         }
-                        placeholder="Ví dụ: 8"
+                        placeholder="Ví dụ: 3.14 hoặc 3,14 hoặc 6"
+                        aria-label="Nhập đáp án số"
                       />
                     </div>
                   )}
@@ -637,9 +669,33 @@ export const QuizContent: React.FC = () => {
                   <div className="space-y-4">
                     {examQuestions.map((q, idx) => {
                       const userAns = userAnswers[q.id]
-                      const isCorrect = userAns === q.correctAnswer
-                      const userOpt = q.options?.find(o => o.id === userAns)
-                      const correctOpt = q.options?.find(o => o.id === q.correctAnswer)
+                      const { isCorrect } = scoreAnswer(q, userAns)
+
+                      // Format hiển thị đáp án của user
+                      let userAnsDisplay = 'Chưa làm'
+                      if (userAns !== undefined && userAns !== null && userAns !== '') {
+                        if (Array.isArray(userAns)) {
+                          userAnsDisplay = userAns.length > 0
+                            ? userAns.map(id => q.options?.find(o => o.id === id)?.text || id).join(', ')
+                            : 'Chưa làm'
+                        } else if (q.options) {
+                          userAnsDisplay = q.options.find(o => o.id === userAns)?.text || String(userAns)
+                        } else {
+                          userAnsDisplay = String(userAns)
+                        }
+                      }
+
+                      // Format hiển thị đáp án đúng
+                      let correctAnsDisplay = ''
+                      if (Array.isArray(q.correctAnswer)) {
+                        correctAnsDisplay = q.correctAnswer
+                          .map(id => q.options?.find(o => o.id === id)?.text || id)
+                          .join(', ')
+                      } else if (q.options) {
+                        correctAnsDisplay = q.options.find(o => o.id === q.correctAnswer)?.text || String(q.correctAnswer)
+                      } else {
+                        correctAnsDisplay = String(q.correctAnswer)
+                      }
 
                       return (
                         <div
@@ -678,7 +734,7 @@ export const QuizContent: React.FC = () => {
                                 {vi.quiz.yourAnswer}:{' '}
                               </span>
                               <span className={isCorrect ? 'text-emerald-600 font-bold' : 'text-rose-500 font-bold'}>
-                                {userOpt ? userOpt.text : userAns || 'Chưa làm'}
+                                {userAnsDisplay}
                               </span>
                             </div>
 
@@ -687,7 +743,7 @@ export const QuizContent: React.FC = () => {
                                 {vi.quiz.correctAnswer}:{' '}
                               </span>
                               <span className="text-emerald-600 font-bold">
-                                {correctOpt ? correctOpt.text : String(q.correctAnswer)}
+                                {correctAnsDisplay}
                               </span>
                             </div>
                           </div>

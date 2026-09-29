@@ -14,7 +14,7 @@ import {
 } from './repositories'
 
 // Cờ kiểm tra đã seed chưa (lưu localStorage thay vì IndexedDB để kiểm tra nhanh)
-const SEED_KEY = 'study_os_seeded_v5'
+const SEED_KEY = 'study_os_seeded_v6'
 
 /**
  * Nạp dữ liệu mẫu tiếng Việt khi khởi chạy lần đầu
@@ -29,8 +29,8 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
   ])
   const alreadySeeded = localStorage.getItem(SEED_KEY)
 
-  // Nếu chưa seed phiên bản v5 HOẶC bất kỳ bảng cốt lõi nào bị thiếu dữ liệu
-  if (!alreadySeeded || qCount < 7 || cCount === 0 || fCount === 0 || sCount === 0) {
+  // Nếu chưa seed phiên bản v6 HOẶC bất kỳ bảng cốt lõi nào bị thiếu dữ liệu
+  if (!alreadySeeded || qCount < 12 || cCount === 0 || fCount === 0 || sCount === 0) {
     await seedDemoData()
     localStorage.setItem(SEED_KEY, 'true')
   }
@@ -704,6 +704,42 @@ export async function seedDemoData(): Promise<void> {
       tags: ['giới hạn', 'lượng giác'],
       isDemo: true,
     })
+
+    // Câu hỏi trắc nghiệm nhiều đáp án (multiple choice)
+    await questionRepo.create({
+      subjectId: mathSubject.id,
+      topicId: mathTopic2.id,
+      type: 'multiple',
+      prompt: "Trong các ma trận sau, những ma trận nào khả nghịch (có định thức khác 0)?",
+      options: [
+        { id: 'opt-a', text: '$\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$' },
+        { id: 'opt-b', text: '$\\begin{pmatrix} 2 & 4 \\\\ 1 & 2 \\end{pmatrix}$' },
+        { id: 'opt-c', text: '$\\begin{pmatrix} 5 & 0 \\\\ 0 & 3 \\end{pmatrix}$' },
+        { id: 'opt-d', text: '$\\begin{pmatrix} 0 & 0 \\\\ 1 & 2 \\end{pmatrix}$' },
+      ],
+      correctAnswer: ['opt-a', 'opt-c'],
+      explanation: "Ma trận vuông khả nghịch khi và chỉ khi định thức khác 0: det(A) = 1·4 - 2·3 = -2 ≠ 0 (khả nghịch); det(B) = 2·2 - 4·1 = 0; det(C) = 5·3 - 0 = 15 ≠ 0 (khả nghịch); det(D) = 0.",
+      difficulty: 2,
+      year: 2024,
+      source: 'Đại số tuyến tính',
+      tags: ['ma trận', 'định thức', 'nhiều đáp án'],
+      isDemo: true,
+    })
+
+    // Câu hỏi đáp án số (numerical)
+    await questionRepo.create({
+      subjectId: mathSubject.id,
+      topicId: mathTopic1.id,
+      type: 'numerical',
+      prompt: "Tính tích phân xác định $I = \\int_{0}^{2} (3x^2 - 2x + 1)\\,dx$. Nhập kết quả số:",
+      correctAnswer: '6',
+      explanation: "Nguyên hàm $F(x) = x^3 - x^2 + x$. Áp dụng Newton-Leibniz: $F(2) - F(0) = (8 - 4 + 2) - 0 = 6$.",
+      difficulty: 2,
+      year: 2024,
+      source: 'Giải tích 1',
+      tags: ['tích phân', 'đáp án số'],
+      isDemo: true,
+    })
   }
 
   if (physQuestions.length === 0) {
@@ -745,6 +781,42 @@ export async function seedDemoData(): Promise<void> {
       year: 2024,
       source: 'Vật lý đại cương 1',
       tags: ['dao động', 'con lắc lò xo'],
+      isDemo: true,
+    })
+
+    // Câu hỏi trắc nghiệm nhiều đáp án (multiple choice)
+    await questionRepo.create({
+      subjectId: physicsSubject.id,
+      topicId: physTopic1.id,
+      type: 'multiple',
+      prompt: "Trong các đại lượng vật lý sau đây, những đại lượng nào là đại lượng vectơ?",
+      options: [
+        { id: 'opt-a', text: 'Vận tốc (Velocity)' },
+        { id: 'opt-b', text: 'Nhiệt độ (Temperature)' },
+        { id: 'opt-c', text: 'Lực tác dụng (Force)' },
+        { id: 'opt-d', text: 'Khối lượng (Mass)' },
+      ],
+      correctAnswer: ['opt-a', 'opt-c'],
+      explanation: "Vận tốc và lực là các đại lượng vectơ vì có cả độ lớn và hướng tác dụng. Nhiệt độ và khối lượng là các đại lượng vô hướng (scalar).",
+      difficulty: 2,
+      year: 2024,
+      source: 'Vật lý đại cương 1',
+      tags: ['vectơ', 'cơ học', 'nhiều đáp án'],
+      isDemo: true,
+    })
+
+    // Câu hỏi đáp án số (numerical)
+    await questionRepo.create({
+      subjectId: physicsSubject.id,
+      topicId: physTopic1.id,
+      type: 'numerical',
+      prompt: "Một vật rơi tự do không vận tốc ban đầu từ độ cao $h = 45\\,\\text{m}$. Lấy gia tốc trọng trường $g = 10\\,\\text{m/s}^2$. Thời gian rơi chạm đất $t$ (giây) là:",
+      correctAnswer: '3',
+      explanation: "Công thức rơi tự do: $h = \\frac{1}{2}gt^2 \\implies t = \\sqrt{\\frac{2h}{g}} = \\sqrt{\\frac{2 \\times 45}{10}} = \\sqrt{9} = 3\\,\\text{s}$.",
+      difficulty: 2,
+      year: 2024,
+      source: 'Cơ học',
+      tags: ['rơi tự do', 'đáp án số'],
       isDemo: true,
     })
   }
