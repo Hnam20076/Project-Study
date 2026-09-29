@@ -412,12 +412,6 @@ function NotebookTree({
         )}
       </div>
 
-      {/* Gợi ý drag-to-sort (Phase sau) */}
-      <div className="px-3 py-2 border-t border-slate-200 dark:border-dark-border">
-        <div className="text-xs text-slate-400">
-          ⠿ Kéo thả để sắp xếp (sắp ra mắt)
-        </div>
-      </div>
     </div>
   )
 }
