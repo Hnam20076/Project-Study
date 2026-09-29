@@ -22,6 +22,7 @@ import type {
   ElectronicComponent,
   ComponentCategory,
   StoredExamSession,
+  Semester,
 } from '@/types'
 
 // Helper tạo timestamp hiện tại
@@ -704,7 +705,7 @@ export async function deleteAllDemoData(): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
-    db.electronicComponents,
+    db.electronicComponents, db.semesters,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -720,6 +721,7 @@ export async function deleteAllDemoData(): Promise<void> {
     await examAttemptRepo.deleteDemoData()
     await formulaRepo.deleteDemoData()
     await componentRepo.deleteDemoData()
+    await semesterRepo.deleteDemoData()
 
     // noteVersions của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()
@@ -772,5 +774,53 @@ export const examSessionRepo = {
     if (expiredIds.length > 0) {
       await db.examSessions.bulkDelete(expiredIds)
     }
+  },
+}
+
+// === Semester Repository (Phase S2) ===
+export const semesterRepo = {
+  async getAll(): Promise<Semester[]> {
+    return db.semesters.orderBy('createdAt').toArray()
+  },
+
+  async getCurrent(): Promise<Semester | undefined> {
+    const list = await db.semesters.toArray()
+    const current = list.find(s => s.isCurrent)
+    if (current) return current
+    return list[0]
+  },
+
+  async getById(id: string): Promise<Semester | undefined> {
+    return db.semesters.get(id)
+  },
+
+  async create(data: Omit<Semester, 'id' | 'createdAt' | 'updatedAt'>): Promise<Semester> {
+    const sem: Semester = { ...baseFields(), ...data }
+    await db.semesters.add(sem)
+    return sem
+  },
+
+  async setCurrent(id: string): Promise<void> {
+    await db.transaction('rw', db.semesters, async () => {
+      const list = await db.semesters.toArray()
+      for (const item of list) {
+        if (item.isCurrent && item.id !== id) {
+          await db.semesters.update(item.id, { isCurrent: false, updatedAt: now() })
+        }
+      }
+      await db.semesters.update(id, { isCurrent: true, updatedAt: now() })
+    })
+  },
+
+  async update(id: string, data: Partial<Semester>): Promise<void> {
+    await db.semesters.update(id, { ...data, updatedAt: now() })
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.semesters.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.semesters.filter(item => item.isDemo === true).delete()
   },
 }

@@ -74,6 +74,11 @@ export interface ScheduleEntry extends BaseEntity {
   endTime: string         // HH:mm
   weeks: number[]         // Danh sách tuần học (rỗng = tất cả các tuần)
   notes?: string
+  // Các trường mở rộng Phase S2 (toàn bộ là optional)
+  periodStart?: number
+  periodEnd?: number
+  classGroupCode?: string // Mã lớp học phần (vd: 261_71ELEC30083_01)
+  weekOverrides?: Record<number, { room?: string }> // Đổi phòng theo từng tuần
 }
 
 // === Ghi chú (M2) ===
@@ -127,6 +132,7 @@ export interface ExportData {
   topics: Topic[]
   links: Link[]
   schedules: ScheduleEntry[]
+  semesters?: Semester[]
   notebooks: Notebook[]
   sections: NoteSection[]
   pages: NotePage[]

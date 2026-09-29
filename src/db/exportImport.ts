@@ -37,6 +37,13 @@ const LinkSchema = BaseEntitySchema.extend({
   label: z.string().optional(),
 })
 
+const SemesterSchema = BaseEntitySchema.extend({
+  name: z.string().min(1),
+  startDate: z.coerce.date(),
+  weeksCount: z.number(),
+  isCurrent: z.boolean().optional(),
+})
+
 const ScheduleSchema = BaseEntitySchema.extend({
   className: z.string().min(1),
   classCode: z.string().optional(),
@@ -48,6 +55,10 @@ const ScheduleSchema = BaseEntitySchema.extend({
   endTime: z.string(),
   weeks: z.array(z.number()),
   notes: z.string().optional(),
+  periodStart: z.number().min(1).max(16).optional(),
+  periodEnd: z.number().min(1).max(16).optional(),
+  classGroupCode: z.string().optional(),
+  weekOverrides: z.record(z.coerce.number(), z.object({ room: z.string().optional() })).optional(),
 })
 
 const NotebookSchema = BaseEntitySchema.extend({
@@ -249,6 +260,7 @@ const ExportDataSchema = z.object({
   topics: z.array(TopicSchema),
   links: z.array(LinkSchema),
   schedules: z.array(ScheduleSchema),
+  semesters: z.array(SemesterSchema).optional(),
   notebooks: z.array(NotebookSchema),
   sections: z.array(SectionSchema),
   pages: z.array(PageSchema),
@@ -292,6 +304,7 @@ export async function exportAllData(): Promise<ExportData> {
     formulas,
     calcHistory,
     electronicComponents,
+    semesters,
   ] = await Promise.all([
     db.subjects.toArray(),
     db.topics.toArray(),
@@ -309,6 +322,7 @@ export async function exportAllData(): Promise<ExportData> {
     db.formulas.toArray(),
     db.calcHistory.toArray(),
     db.electronicComponents.toArray(),
+    db.semesters.toArray(),
   ])
 
   return {
@@ -318,6 +332,7 @@ export async function exportAllData(): Promise<ExportData> {
     topics,
     links,
     schedules,
+    semesters,
     notebooks,
     sections,
     pages,
@@ -347,7 +362,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
-    db.electronicComponents,
+    db.electronicComponents, db.semesters,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -367,6 +382,7 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.formulas.clear(),
       db.calcHistory.clear(),
       db.electronicComponents.clear(),
+      db.semesters.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -374,6 +390,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.topics.length > 0) await db.topics.bulkAdd(parsed.topics as never[])
     if (parsed.links.length > 0) await db.links.bulkAdd(parsed.links as never[])
     if (parsed.schedules.length > 0) await db.schedules.bulkAdd(parsed.schedules as never[])
+    if (parsed.semesters && parsed.semesters.length > 0) await db.semesters.bulkAdd(parsed.semesters as never[])
     if (parsed.notebooks.length > 0) await db.notebooks.bulkAdd(parsed.notebooks as never[])
     if (parsed.sections.length > 0) await db.sections.bulkAdd(parsed.sections as never[])
     if (parsed.pages.length > 0) await db.pages.bulkAdd(parsed.pages as never[])
