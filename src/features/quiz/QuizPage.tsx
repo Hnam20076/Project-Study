@@ -20,7 +20,10 @@ import {
   Search,
   Trash2,
   Edit2,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
+import { seedDemoData } from '@/db/seed'
 import { toast } from 'sonner'
 import type {
   Question,
@@ -52,9 +55,10 @@ export const QuizContent: React.FC = () => {
   const [currentAttempt, setCurrentAttempt] = useState<ExamAttempt | null>(null)
 
   // Cấu hình đề thi
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('')
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
   const [selectedNumQuestions, setSelectedNumQuestions] = useState<number>(5)
   const [selectedDuration, setSelectedDuration] = useState<number>(10) // phút
+  const [isReSeeding, setIsReSeeding] = useState(false)
 
   // Ngân hàng câu hỏi filters
   const [bankSearch, setBankSearch] = useState('')
@@ -62,12 +66,34 @@ export const QuizContent: React.FC = () => {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false)
 
-  // Mặc định chọn subject đầu tiên
+  // Đảm bảo selectedSubjectId có giá trị mặc định hợp lệ
   useEffect(() => {
-    if (subjects.length > 0 && !selectedSubjectId) {
-      setSelectedSubjectId(subjects[0].id)
+    if (!selectedSubjectId) {
+      setSelectedSubjectId('all')
     }
-  }, [subjects, selectedSubjectId])
+  }, [selectedSubjectId])
+
+  // Danh sách câu hỏi có sẵn theo môn học đã chọn
+  const availableQuestions = useMemo(() => {
+    if (!selectedSubjectId || selectedSubjectId === 'all') {
+      return questions
+    }
+    return questions.filter(q => q.subjectId === selectedSubjectId)
+  }, [questions, selectedSubjectId])
+
+  // Nạp lại bộ câu hỏi mẫu khi cơ sở dữ liệu trống
+  const handleReSeed = async () => {
+    try {
+      setIsReSeeding(true)
+      await seedDemoData()
+      toast.success('Đã nạp thành công bộ câu hỏi mẫu vào ngân hàng đề!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Không thể nạp dữ liệu: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setIsReSeeding(false)
+    }
+  }
 
   // Timer đếm ngược khi đang thi
   useEffect(() => {
@@ -93,103 +119,110 @@ export const QuizContent: React.FC = () => {
 
   // Bắt đầu làm bài thi
   const handleStartExam = () => {
-    let pool = questions
-    if (selectedSubjectId) {
-      pool = pool.filter(q => q.subjectId === selectedSubjectId)
+    try {
+      if (availableQuestions.length === 0) {
+        toast.error('Chưa có câu hỏi nào cho môn học này! Vui lòng chọn môn khác hoặc nạp bộ câu hỏi.')
+        return
+      }
+
+      // Trộn ngẫu nhiên câu hỏi (Fisher-Yates)
+      const shuffled = [...availableQuestions].sort(() => 0.5 - Math.random())
+      const selected = shuffled.slice(0, Math.min(selectedNumQuestions, availableQuestions.length))
+
+      const sub = subjects.find(s => s.id === selectedSubjectId)
+      const title = selectedSubjectId === 'all' || !sub
+        ? `Đề luyện thi: Tất cả môn học (${selected.length} câu)`
+        : `Đề luyện thi: ${sub.name} (${selected.length} câu)`
+
+      setExamQuestions(selected)
+      setExamTitle(title)
+      setCurrentQIndex(0)
+      setUserAnswers({})
+      setFlaggedQuestions(new Set())
+      setTimeLeft(selectedDuration * 60)
+      setIsExamActive(true)
+      setExamCompleted(false)
+      setCurrentAttempt(null)
+    } catch (err) {
+      console.error('Lỗi khi bắt đầu thi:', err)
+      toast.error('Không thể tạo đề thi: ' + (err instanceof Error ? err.message : String(err)))
     }
-
-    if (pool.length === 0) {
-      toast.error('Chưa có câu hỏi nào cho môn học này! Vui lòng thêm câu hỏi vào ngân hàng.')
-      return
-    }
-
-    // Trộn ngẫu nhiên câu hỏi (Fisher-Yates)
-    const shuffled = [...pool].sort(() => 0.5 - Math.random())
-    const selected = shuffled.slice(0, Math.min(selectedNumQuestions, pool.length))
-
-    const sub = subjects.find(s => s.id === selectedSubjectId)
-    const title = `Đề luyện thi: ${sub ? sub.name : 'Tổng hợp'} (${selected.length} câu)`
-
-    setExamQuestions(selected)
-    setExamTitle(title)
-    setCurrentQIndex(0)
-    setUserAnswers({})
-    setFlaggedQuestions(new Set())
-    setTimeLeft(selectedDuration * 60)
-    setIsExamActive(true)
-    setExamCompleted(false)
-    setCurrentAttempt(null)
   }
 
   // Nộp bài thi
   const handleSubmitExam = async () => {
-    setIsExamActive(false)
-    setExamCompleted(true)
+    try {
+      setIsExamActive(false)
+      setExamCompleted(true)
 
-    // Tính điểm và phân tích lỗ hổng theo topic
-    let correctTotal = 0
-    const records: ExamAnswerRecord[] = []
-    const topicStats: Record<string, { total: number; correct: number }> = {}
+      // Tính điểm và phân tích lỗ hổng theo topic
+      let correctTotal = 0
+      const records: ExamAnswerRecord[] = []
+      const topicStats: Record<string, { total: number; correct: number }> = {}
 
-    examQuestions.forEach(q => {
-      const userAns = userAnswers[q.id]
-      const isCorrect = userAns !== undefined && userAns === q.correctAnswer
-      if (isCorrect) correctTotal++
+      examQuestions.forEach(q => {
+        const userAns = userAnswers[q.id]
+        const isCorrect = userAns !== undefined && userAns === q.correctAnswer
+        if (isCorrect) correctTotal++
 
-      records.push({
-        questionId: q.id,
-        userAnswer: userAns,
-        isCorrect,
+        records.push({
+          questionId: q.id,
+          userAnswer: userAns,
+          isCorrect,
+        })
+
+        const tId = q.topicId || 'unknown'
+        if (!topicStats[tId]) {
+          topicStats[tId] = { total: 0, correct: 0 }
+        }
+        topicStats[tId].total++
+        if (isCorrect) topicStats[tId].correct++
       })
 
-      const tId = q.topicId || 'unknown'
-      if (!topicStats[tId]) {
-        topicStats[tId] = { total: 0, correct: 0 }
-      }
-      topicStats[tId].total++
-      if (isCorrect) topicStats[tId].correct++
-    })
+      const topicMap = new Map<string, Topic>()
+      topics.forEach(t => topicMap.set(t.id, t))
 
-    const topicMap = new Map<string, Topic>()
-    topics.forEach(t => topicMap.set(t.id, t))
+      const breakdown: TopicGapAnalysis[] = Object.entries(topicStats).map(([tId, stat]) => {
+        const percent = (stat.correct / stat.total) * 100
+        const topicName = tId === 'unknown' ? 'Tổng hợp / Chưa phân loại' : topicMap.get(tId)?.name || 'Chủ đề'
+        let status: 'good' | 'average' | 'weak' = 'good'
+        if (percent < 60) status = 'weak'
+        else if (percent < 80) status = 'average'
 
-    const breakdown: TopicGapAnalysis[] = Object.entries(topicStats).map(([tId, stat]) => {
-      const percent = (stat.correct / stat.total) * 100
-      const topicName = tId === 'unknown' ? 'Tổng hợp / Chưa phân loại' : topicMap.get(tId)?.name || 'Chủ đề'
-      let status: 'good' | 'average' | 'weak' = 'good'
-      if (percent < 60) status = 'weak'
-      else if (percent < 80) status = 'average'
+        return {
+          topicId: tId,
+          topicName,
+          total: stat.total,
+          correct: stat.correct,
+          percent,
+          status,
+        }
+      })
 
-      return {
-        topicId: tId,
-        topicName,
-        total: stat.total,
-        correct: stat.correct,
-        percent,
-        status,
-      }
-    })
+      const score = examQuestions.length > 0 ? (correctTotal / examQuestions.length) * 10 : 0
+      const durationSeconds = selectedDuration * 60
+      const timeSpentSeconds = Math.max(0, durationSeconds - timeLeft)
 
-    const score = examQuestions.length > 0 ? (correctTotal / examQuestions.length) * 10 : 0
-    const durationSeconds = selectedDuration * 60
-    const timeSpentSeconds = Math.max(0, durationSeconds - timeLeft)
+      const attempt = await examAttemptRepo.create({
+        title: examTitle,
+        subjectId: selectedSubjectId || 'all',
+        totalQuestions: examQuestions.length,
+        correctCount: correctTotal,
+        score,
+        durationSeconds,
+        timeSpentSeconds,
+        completedAt: new Date(),
+        answers: records,
+        topicBreakdown: breakdown,
+        tags: ['luyện thi'],
+      })
 
-    const attempt = await examAttemptRepo.create({
-      title: examTitle,
-      subjectId: selectedSubjectId,
-      totalQuestions: examQuestions.length,
-      correctCount: correctTotal,
-      score,
-      durationSeconds,
-      timeSpentSeconds,
-      completedAt: new Date(),
-      answers: records,
-      topicBreakdown: breakdown,
-      tags: ['luyện thi'],
-    })
-
-    setCurrentAttempt(attempt)
-    toast.success('Đã nộp bài và chấm điểm xong!')
+      setCurrentAttempt(attempt)
+      toast.success('Đã nộp bài và chấm điểm xong!')
+    } catch (err) {
+      console.error('Lỗi khi nộp bài:', err)
+      toast.error('Không thể lưu kết quả bài thi: ' + (err instanceof Error ? err.message : String(err)))
+    }
   }
 
   // Đánh dấu câu phân vân
@@ -322,13 +355,51 @@ export const QuizContent: React.FC = () => {
                       value={selectedSubjectId}
                       onChange={e => setSelectedSubjectId(e.target.value)}
                     >
-                      {subjects.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.code})
-                        </option>
-                      ))}
+                      <option value="all">
+                        Tất cả môn học ({questions.length} câu)
+                      </option>
+                      {subjects.map(s => {
+                        const count = questions.filter(q => q.subjectId === s.id).length
+                        return (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.code}) — {count} câu
+                          </option>
+                        )
+                      })}
                     </select>
                   </div>
+
+                  {availableQuestions.length === 0 && (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span>Môn học này hiện chưa có câu hỏi nào. Hãy chọn <strong>"Tất cả môn học"</strong> hoặc chuyển sang tab </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('bank')}
+                          className="font-bold underline hover:opacity-80"
+                        >
+                          Ngân hàng câu hỏi
+                        </button>
+                        <span> để tạo câu hỏi mới.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {questions.length === 0 && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-xl text-blue-700 dark:text-blue-300 text-xs flex items-center justify-between gap-2">
+                      <span>Chưa có câu hỏi nào trong hệ thống?</span>
+                      <button
+                        type="button"
+                        onClick={handleReSeed}
+                        disabled={isReSeeding}
+                        className="btn-primary py-1 px-2.5 text-xs flex items-center gap-1 shadow-sm"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isReSeeding ? 'animate-spin' : ''}`} />
+                        <span>Nạp câu hỏi mẫu</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -367,10 +438,11 @@ export const QuizContent: React.FC = () => {
 
                   <button
                     onClick={handleStartExam}
-                    className="btn-primary w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-md mt-2"
+                    disabled={availableQuestions.length === 0}
+                    className="btn-primary w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-md mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Play className="w-4 h-4 fill-white" />
-                    <span>{vi.quiz.startExam}</span>
+                    <span>{vi.quiz.startExam} {availableQuestions.length > 0 ? `(${availableQuestions.length} câu sẵn sàng)` : ''}</span>
                   </button>
                 </div>
               </div>

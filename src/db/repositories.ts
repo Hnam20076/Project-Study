@@ -40,7 +40,8 @@ function baseFields(extra: Partial<{ subjectId: string; topicId: string }> = {})
 // === Subject Repository ===
 export const subjectRepo = {
   async getAll(): Promise<Subject[]> {
-    return db.subjects.orderBy('name').toArray()
+    const list = await db.subjects.toArray()
+    return list.sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getById(id: string): Promise<Subject | undefined> {
@@ -493,11 +494,13 @@ export const knowledgeEdgeRepo = {
 // === Question Repository (M4) ===
 export const questionRepo = {
   async getAll(): Promise<Question[]> {
-    return db.questions.orderBy('createdAt').reverse().toArray()
+    const list = await db.questions.toArray()
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   },
 
   async getBySubject(subjectId: string): Promise<Question[]> {
-    return db.questions.where('subjectId').equals(subjectId).reverse().sortBy('createdAt')
+    const list = await db.questions.where('subjectId').equals(subjectId).toArray()
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   },
 
   async getByTopic(topicId: string): Promise<Question[]> {
@@ -530,11 +533,13 @@ export const questionRepo = {
 // === ExamAttempt Repository (M4) ===
 export const examAttemptRepo = {
   async getAll(): Promise<ExamAttempt[]> {
-    return db.examAttempts.orderBy('completedAt').reverse().toArray()
+    const list = await db.examAttempts.toArray()
+    return list.sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime())
   },
 
   async getBySubject(subjectId: string): Promise<ExamAttempt[]> {
-    return db.examAttempts.where('subjectId').equals(subjectId).reverse().sortBy('completedAt')
+    const list = await db.examAttempts.where('subjectId').equals(subjectId).toArray()
+    return list.sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime())
   },
 
   async getById(id: string): Promise<ExamAttempt | undefined> {
@@ -559,11 +564,13 @@ export const examAttemptRepo = {
 // === Formula Repository (M5) ===
 export const formulaRepo = {
   async getAll(): Promise<Formula[]> {
-    return db.formulas.orderBy('name').toArray()
+    const list = await db.formulas.toArray()
+    return list.sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getByCategory(category: string): Promise<Formula[]> {
-    return db.formulas.where('category').equals(category).toArray()
+    const list = await db.formulas.where('category').equals(category).toArray()
+    return list.sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getById(id: string): Promise<Formula | undefined> {

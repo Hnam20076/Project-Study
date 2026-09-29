@@ -21,75 +21,136 @@ const SEED_KEY = 'study_os_seeded_v5'
  * Chỉ chạy một lần, được đánh cờ isDemo = true
  */
 export async function seedDemoDataIfNeeded(): Promise<void> {
+  const [qCount, cCount, fCount, sCount] = await Promise.all([
+    questionRepo.getAll().then(a => a.length).catch(() => 0),
+    componentRepo.getAll().then(a => a.length).catch(() => 0),
+    formulaRepo.getAll().then(a => a.length).catch(() => 0),
+    subjectRepo.getAll().then(a => a.length).catch(() => 0),
+  ])
   const alreadySeeded = localStorage.getItem(SEED_KEY)
-  if (alreadySeeded) return
 
-  await seedDemoData()
-  localStorage.setItem(SEED_KEY, 'true')
+  // Nếu chưa seed phiên bản v5 HOẶC bất kỳ bảng cốt lõi nào bị thiếu dữ liệu
+  if (!alreadySeeded || qCount < 7 || cCount === 0 || fCount === 0 || sCount === 0) {
+    await seedDemoData()
+    localStorage.setItem(SEED_KEY, 'true')
+  }
 }
 
-async function seedDemoData(): Promise<void> {
-
+export async function seedDemoData(): Promise<void> {
   // === Subjects ===
-  const mathSubject = await subjectRepo.create({
-    name: 'Toán Kỹ Thuật',
-    code: 'MATH301',
-    color: '#6366f1',
-    description: 'Giải tích, đại số tuyến tính, xác suất thống kê',
-    semester: 'HK1-2024',
-    tags: ['toán', 'kỹ thuật'],
-    isDemo: true,
-  })
+  const existingSubjects = await subjectRepo.getAll()
+  let mathSubject = existingSubjects.find(s => s.code === 'MATH301')
+  if (!mathSubject) {
+    mathSubject = await subjectRepo.create({
+      name: 'Toán Kỹ Thuật',
+      code: 'MATH301',
+      color: '#6366f1',
+      description: 'Giải tích, đại số tuyến tính, xác suất thống kê',
+      semester: 'HK1-2024',
+      tags: ['toán', 'kỹ thuật'],
+      isDemo: true,
+    })
+  }
 
-  const physicsSubject = await subjectRepo.create({
-    name: 'Vật Lý Đại Cương',
-    code: 'PHYS201',
-    color: '#10b981',
-    description: 'Cơ học, nhiệt học, điện từ, quang học',
-    semester: 'HK1-2024',
-    tags: ['vật lý', 'đại cương'],
-    isDemo: true,
-  })
+  let physicsSubject = existingSubjects.find(s => s.code === 'PHYS201')
+  if (!physicsSubject) {
+    physicsSubject = await subjectRepo.create({
+      name: 'Vật Lý Đại Cương',
+      code: 'PHYS201',
+      color: '#10b981',
+      description: 'Cơ học, nhiệt học, điện từ, quang học',
+      semester: 'HK1-2024',
+      tags: ['vật lý', 'đại cương'],
+      isDemo: true,
+    })
+  }
 
-  const electronicsSubject = await subjectRepo.create({
-    name: 'Điện Tử Cơ Bản',
-    code: 'ELEC101',
-    color: '#f59e0b',
-    description: 'Linh kiện điện tử, mạch điện cơ bản',
-    semester: 'HK1-2024',
-    tags: ['điện tử', 'mạch'],
-    isDemo: true,
-  })
+  let electronicsSubject = existingSubjects.find(s => s.code === 'ELEC101')
+  if (!electronicsSubject) {
+    electronicsSubject = await subjectRepo.create({
+      name: 'Điện Tử Cơ Bản',
+      code: 'ELEC101',
+      color: '#f59e0b',
+      description: 'Linh kiện điện tử, mạch điện cơ bản',
+      semester: 'HK1-2024',
+      tags: ['điện tử', 'mạch'],
+      isDemo: true,
+    })
+  }
 
   // === Topics ===
-  await topicRepo.create({
-    name: 'Đạo hàm',
-    subjectId: mathSubject.id,
-    description: 'Khái niệm, quy tắc tính đạo hàm',
-    order: 1,
-    tags: ['giải tích'],
-    isDemo: true,
-  })
+  const existingTopics = await topicRepo.getAll()
+  let mathTopic1 = existingTopics.find(t => t.name === 'Đạo hàm' && t.subjectId === mathSubject.id)
+  if (!mathTopic1) {
+    mathTopic1 = await topicRepo.create({
+      name: 'Đạo hàm',
+      subjectId: mathSubject.id,
+      description: 'Khái niệm, quy tắc tính đạo hàm',
+      order: 1,
+      tags: ['giải tích'],
+      isDemo: true,
+    })
+  }
 
-  await topicRepo.create({
-    name: 'Tích phân',
-    subjectId: mathSubject.id,
-    description: 'Tích phân xác định và bất định',
-    order: 2,
-    tags: ['giải tích'],
-    isDemo: true,
-  })
+  let mathTopic2 = existingTopics.find(t => t.name === 'Tích phân' && t.subjectId === mathSubject.id)
+  if (!mathTopic2) {
+    mathTopic2 = await topicRepo.create({
+      name: 'Tích phân',
+      subjectId: mathSubject.id,
+      description: 'Tích phân xác định và bất định',
+      order: 2,
+      tags: ['giải tích'],
+      isDemo: true,
+    })
+  }
 
-  await topicRepo.create({
-    name: 'Định luật Ôm',
-    subjectId: electronicsSubject.id,
-    description: 'U = I × R',
-    order: 1,
-    tags: ['mạch', 'điện'],
-    isDemo: true,
-  })
+  let physTopic1 = existingTopics.find(t => t.name === 'Cơ học Newton' && t.subjectId === physicsSubject.id)
+  if (!physTopic1) {
+    physTopic1 = await topicRepo.create({
+      name: 'Cơ học Newton',
+      subjectId: physicsSubject.id,
+      description: 'Ba định luật Newton và ứng dụng',
+      order: 1,
+      tags: ['cơ học', 'newton'],
+      isDemo: true,
+    })
+  }
 
-  void physicsSubject // đã tạo, dùng sau
+  let physTopic2 = existingTopics.find(t => t.name === 'Dao động điều hòa' && t.subjectId === physicsSubject.id)
+  if (!physTopic2) {
+    physTopic2 = await topicRepo.create({
+      name: 'Dao động điều hòa',
+      subjectId: physicsSubject.id,
+      description: 'Phương trình dao động, con lắc lò xo và con lắc đơn',
+      order: 2,
+      tags: ['dao động', 'vật lý'],
+      isDemo: true,
+    })
+  }
+
+  let elecTopic1 = existingTopics.find(t => t.name === 'Định luật Ôm' && t.subjectId === electronicsSubject.id)
+  if (!elecTopic1) {
+    elecTopic1 = await topicRepo.create({
+      name: 'Định luật Ôm',
+      subjectId: electronicsSubject.id,
+      description: 'U = I × R và mạch phân áp',
+      order: 1,
+      tags: ['mạch', 'điện'],
+      isDemo: true,
+    })
+  }
+
+  let elecTopic2 = existingTopics.find(t => t.name === 'Mạch RC & Quá độ' && t.subjectId === electronicsSubject.id)
+  if (!elecTopic2) {
+    elecTopic2 = await topicRepo.create({
+      name: 'Mạch RC & Quá độ',
+      subjectId: electronicsSubject.id,
+      description: 'Quá trình nạp xả tụ điện và hằng số thời gian tau',
+      order: 2,
+      tags: ['quá độ', 'rc'],
+      isDemo: true,
+    })
+  }
 
   // === Notebooks ===
   const mathNotebook = await notebookRepo.create({
@@ -577,102 +638,179 @@ async function seedDemoData(): Promise<void> {
   })
 
   // === M4: Ngân hàng câu hỏi mẫu (Kỹ thuật chuẩn xác) ===
-  await questionRepo.create({
-    subjectId: mathSubject.id,
-    topicId: chapter1.id,
-    type: 'single',
-    prompt: "Đạo hàm cấp 1 của hàm số $f(x) = x^2 e^{3x}$ tại $x = 0$ là:",
-    options: [
-      { id: 'opt-a', text: '0' },
-      { id: 'opt-b', text: '1' },
-      { id: 'opt-c', text: '3' },
-      { id: 'opt-d', text: '6' },
-    ],
-    correctAnswer: 'opt-a',
-    explanation: "Áp dụng quy tắc đạo hàm tích: $(u \\cdot v)' = u'v + uv'$. Với $u = x^2 \\implies u' = 2x$ và $v = e^{3x} \\implies v' = 3e^{3x}$. Ta có $f'(x) = 2x e^{3x} + 3x^2 e^{3x}$. Thay $x=0 \\implies f'(0) = 0$.",
-    difficulty: 2,
-    year: 2023,
-    source: 'Đề thi Giải tích 1 - ĐHBK',
-    tags: ['đạo hàm', 'giải tích'],
-    isDemo: true,
-  })
+  const existingQuestions = await questionRepo.getAll()
+  const mathQuestions = existingQuestions.filter(q => q.subjectId === mathSubject.id)
+  const physQuestions = existingQuestions.filter(q => q.subjectId === physicsSubject.id)
+  const elecQuestions = existingQuestions.filter(q => q.subjectId === electronicsSubject.id)
 
-  await questionRepo.create({
-    subjectId: mathSubject.id,
-    topicId: chapter1.id,
-    type: 'single',
-    prompt: "Tính tích phân xác định $I = \\int_0^1 (2x + 1) e^x dx$:",
-    options: [
-      { id: 'opt-a', text: 'e' },
-      { id: 'opt-b', text: '2e - 1' },
-      { id: 'opt-c', text: 'e + 1' },
-      { id: 'opt-d', text: '2e + 1' },
-    ],
-    correctAnswer: 'opt-c',
-    explanation: "Đặt $u = 2x + 1 \\implies du = 2dx$; $dv = e^x dx \\implies v = e^x$. Áp dụng công thức tích phân từng phần: $I = [(2x+1)e^x]_0^1 - 2\\int_0^1 e^x dx = 3e - 1 - 2(e - 1) = e + 1$.",
-    difficulty: 3,
-    year: 2022,
-    source: 'Toán cao cấp A1',
-    tags: ['tích phân', 'từng phần'],
-    isDemo: true,
-  })
+  if (mathQuestions.length === 0) {
+    // 1. Toán Kỹ Thuật
+    await questionRepo.create({
+      subjectId: mathSubject.id,
+      topicId: mathTopic1.id,
+      type: 'single',
+      prompt: "Đạo hàm cấp 1 của hàm số $f(x) = x^2 e^{3x}$ tại $x = 0$ là:",
+      options: [
+        { id: 'opt-a', text: '0' },
+        { id: 'opt-b', text: '1' },
+        { id: 'opt-c', text: '3' },
+        { id: 'opt-d', text: '6' },
+      ],
+      correctAnswer: 'opt-a',
+      explanation: "Áp dụng quy tắc đạo hàm tích: $(u \\cdot v)' = u'v + uv'$. Với $u = x^2 \\implies u' = 2x$ và $v = e^{3x} \\implies v' = 3e^{3x}$. Ta có $f'(x) = 2x e^{3x} + 3x^2 e^{3x}$. Thay $x=0 \\implies f'(0) = 0$.",
+      difficulty: 2,
+      year: 2023,
+      source: 'Đề thi Giải tích 1 - ĐHBK',
+      tags: ['đạo hàm', 'giải tích'],
+      isDemo: true,
+    })
 
-  await questionRepo.create({
-    subjectId: electronicsSubject.id,
-    type: 'single',
-    prompt: "Cho mạch phân áp gồm nguồn $V_s = 12\\text{V}$ và hai điện trở nối tiếp $R_1 = 4\\text{k}\\Omega$, $R_2 = 8\\text{k}\\Omega$. Điện áp rơi trên điện trở $R_2$ là:",
-    options: [
-      { id: 'opt-a', text: '4V' },
-      { id: 'opt-b', text: '6V' },
-      { id: 'opt-c', text: '8V' },
-      { id: 'opt-d', text: '10V' },
-    ],
-    correctAnswer: 'opt-c',
-    explanation: "Theo công thức phân áp: $V_{R2} = V_s \\cdot \\frac{R_2}{R_1 + R_2} = 12 \\cdot \\frac{8}{4 + 8} = 12 \\cdot \\frac{8}{12} = 8\\text{V}$.",
-    difficulty: 2,
-    year: 2023,
-    source: 'Cơ sở Mạch điện',
-    tags: ['mạch điện', 'phân áp', 'ohm'],
-    isDemo: true,
-  })
+    await questionRepo.create({
+      subjectId: mathSubject.id,
+      topicId: mathTopic2.id,
+      type: 'single',
+      prompt: "Tính tích phân xác định $I = \\int_0^1 (2x + 1) e^x dx$:",
+      options: [
+        { id: 'opt-a', text: 'e' },
+        { id: 'opt-b', text: '2e - 1' },
+        { id: 'opt-c', text: 'e + 1' },
+        { id: 'opt-d', text: '2e + 1' },
+      ],
+      correctAnswer: 'opt-c',
+      explanation: "Đặt $u = 2x + 1 \\implies du = 2dx$; $dv = e^x dx \\implies v = e^x$. Áp dụng công thức tích phân từng phần: $I = [(2x+1)e^x]_0^1 - 2\\int_0^1 e^x dx = 3e - 1 - 2(e - 1) = e + 1$.",
+      difficulty: 3,
+      year: 2022,
+      source: 'Toán cao cấp A1',
+      tags: ['tích phân', 'từng phần'],
+      isDemo: true,
+    })
 
-  await questionRepo.create({
-    subjectId: electronicsSubject.id,
-    type: 'single',
-    prompt: "Mạch RC nối tiếp gồm $R = 10\\text{k}\\Omega$ và $C = 100\\mu\\text{F}$. Hằng số thời gian $\\tau$ của mạch là:",
-    options: [
-      { id: 'opt-a', text: '0.1s' },
-      { id: 'opt-b', text: '1.0s' },
-      { id: 'opt-c', text: '10s' },
-      { id: 'opt-d', text: '100s' },
-    ],
-    correctAnswer: 'opt-b',
-    explanation: "Hằng số thời gian $\\tau = R \\cdot C = 10 \\cdot 10^3\\,\\Omega \\times 100 \\cdot 10^{-6}\\,\\text{F} = 1.0\\,\\text{s}$.",
-    difficulty: 2,
-    year: 2024,
-    source: 'Mạch điện tử tương tự',
-    tags: ['quá độ', 'rc', 'hằng số thời gian'],
-    isDemo: true,
-  })
+    await questionRepo.create({
+      subjectId: mathSubject.id,
+      topicId: mathTopic1.id,
+      type: 'single',
+      prompt: "Giới hạn $\\lim_{x \\to 0} \\frac{\\sin(3x)}{x}$ có giá trị bằng:",
+      options: [
+        { id: 'opt-a', text: '0' },
+        { id: 'opt-b', text: '1' },
+        { id: 'opt-c', text: '3' },
+        { id: 'opt-d', text: 'Vô cùng' },
+      ],
+      correctAnswer: 'opt-c',
+      explanation: "Áp dụng giới hạn cơ bản: $\\lim_{u \\to 0} \\frac{\\sin(u)}{u} = 1$. Ta có $\\frac{\\sin(3x)}{x} = 3 \\cdot \\frac{\\sin(3x)}{3x}$. Khi $x \\to 0$, $3x \\to 0 \\implies$ Giới hạn bằng $3 \\cdot 1 = 3$.",
+      difficulty: 1,
+      year: 2023,
+      source: 'Giải tích 1',
+      tags: ['giới hạn', 'lượng giác'],
+      isDemo: true,
+    })
+  }
 
-  await questionRepo.create({
-    subjectId: electronicsSubject.id,
-    type: 'single',
-    prompt: "Trở kháng phức của tụ điện có điện dung $C$ ở tần số góc $\\omega$ được biểu diễn là:",
-    options: [
-      { id: 'opt-a', text: 'Z_C = j\\omega C' },
-      { id: 'opt-b', text: 'Z_C = \\frac{1}{j\\omega C} = -\\frac{j}{\\omega C}' },
-      { id: 'opt-c', text: 'Z_C = \\omega C' },
-      { id: 'opt-d', text: 'Z_C = \\frac{R}{j\\omega C}' },
-    ],
-    correctAnswer: 'opt-b',
-    explanation: "Theo lý thuyết mạch xoay chiều tần số cao, trở kháng phức của tụ điện là $Z_C = \\frac{1}{j\\omega C} = -j \\frac{1}{\\omega C}$.",
-    difficulty: 3,
-    year: 2023,
-    source: 'Lý thuyết Mạch 1',
-    tags: ['trở kháng', 'tụ điện', 'số phức'],
-    isDemo: true,
-  })
+  if (physQuestions.length === 0) {
+    // 2. Vật Lý Đại Cương
+    await questionRepo.create({
+      subjectId: physicsSubject.id,
+      topicId: physTopic1.id,
+      type: 'single',
+      prompt: "Một vật có khối lượng $m = 2\\text{ kg}$ chịu tác dụng của lực không đổi $F = 10\\text{ N}$. Gia tốc của vật là:",
+      options: [
+        { id: 'opt-a', text: '2 m/s²' },
+        { id: 'opt-b', text: '5 m/s²' },
+        { id: 'opt-c', text: '10 m/s²' },
+        { id: 'opt-d', text: '20 m/s²' },
+      ],
+      correctAnswer: 'opt-b',
+      explanation: "Theo định luật II Newton: $F = m \\cdot a \\implies a = \\frac{F}{m} = \\frac{10}{2} = 5\\text{ m/s}^2$.",
+      difficulty: 1,
+      year: 2023,
+      source: 'Vật lý đại cương 1',
+      tags: ['newton', 'cơ học', 'lực'],
+      isDemo: true,
+    })
+
+    await questionRepo.create({
+      subjectId: physicsSubject.id,
+      topicId: physTopic2.id,
+      type: 'single',
+      prompt: "Con lắc lò xo có độ cứng $k = 100\\text{ N/m}$, khối lượng vật nặng $m = 0.25\\text{ kg}$. Tần số góc dao động riêng $\\omega$ là:",
+      options: [
+        { id: 'opt-a', text: '10 rad/s' },
+        { id: 'opt-b', text: '20 rad/s' },
+        { id: 'opt-c', text: '25 rad/s' },
+        { id: 'opt-d', text: '40 rad/s' },
+      ],
+      correctAnswer: 'opt-b',
+      explanation: "Tần số góc của con lắc lò xo: $\\omega = \\sqrt{\\frac{k}{m}} = \\sqrt{\\frac{100}{0.25}} = \\sqrt{400} = 20\\text{ rad/s}$.",
+      difficulty: 2,
+      year: 2024,
+      source: 'Vật lý đại cương 1',
+      tags: ['dao động', 'con lắc lò xo'],
+      isDemo: true,
+    })
+  }
+
+  if (elecQuestions.length === 0) {
+    // 3. Điện Tử Cơ Bản
+    await questionRepo.create({
+      subjectId: electronicsSubject.id,
+      topicId: elecTopic1.id,
+      type: 'single',
+      prompt: "Cho mạch phân áp gồm nguồn $V_s = 12\\text{V}$ và hai điện trở nối tiếp $R_1 = 4\\text{k}\\Omega$, $R_2 = 8\\text{k}\\Omega$. Điện áp rơi trên điện trở $R_2$ là:",
+      options: [
+        { id: 'opt-a', text: '4V' },
+        { id: 'opt-b', text: '6V' },
+        { id: 'opt-c', text: '8V' },
+        { id: 'opt-d', text: '10V' },
+      ],
+      correctAnswer: 'opt-c',
+      explanation: "Theo công thức phân áp: $V_{R2} = V_s \\cdot \\frac{R_2}{R_1 + R_2} = 12 \\cdot \\frac{8}{4 + 8} = 12 \\cdot \\frac{8}{12} = 8\\text{V}$.",
+      difficulty: 2,
+      year: 2023,
+      source: 'Cơ sở Mạch điện',
+      tags: ['mạch điện', 'phân áp', 'ohm'],
+      isDemo: true,
+    })
+
+    await questionRepo.create({
+      subjectId: electronicsSubject.id,
+      topicId: elecTopic2.id,
+      type: 'single',
+      prompt: "Mạch RC nối tiếp gồm $R = 10\\text{k}\\Omega$ và $C = 100\\mu\\text{F}$. Hằng số thời gian $\\tau$ của mạch là:",
+      options: [
+        { id: 'opt-a', text: '0.1s' },
+        { id: 'opt-b', text: '1.0s' },
+        { id: 'opt-c', text: '10s' },
+        { id: 'opt-d', text: '100s' },
+      ],
+      correctAnswer: 'opt-b',
+      explanation: "Hằng số thời gian $\\tau = R \\cdot C = 10 \\cdot 10^3\\,\\Omega \\times 100 \\cdot 10^{-6}\\,\\text{F} = 1.0\\,\\text{s}$.",
+      difficulty: 2,
+      year: 2024,
+      source: 'Mạch điện tử tương tự',
+      tags: ['quá độ', 'rc', 'hằng số thời gian'],
+      isDemo: true,
+    })
+
+    await questionRepo.create({
+      subjectId: electronicsSubject.id,
+      topicId: elecTopic2.id,
+      type: 'single',
+      prompt: "Trở kháng phức của tụ điện có điện dung $C$ ở tần số góc $\\omega$ được biểu diễn là:",
+      options: [
+        { id: 'opt-a', text: 'Z_C = j\\omega C' },
+        { id: 'opt-b', text: 'Z_C = \\frac{1}{j\\omega C} = -\\frac{j}{\\omega C}' },
+        { id: 'opt-c', text: 'Z_C = \\omega C' },
+        { id: 'opt-d', text: 'Z_C = \\frac{R}{j\\omega C}' },
+      ],
+      correctAnswer: 'opt-b',
+      explanation: "Theo lý thuyết mạch xoay chiều tần số cao, trở kháng phức của tụ điện là $Z_C = \\frac{1}{j\\omega C} = -j \\frac{1}{\\omega C}$.",
+      difficulty: 3,
+      year: 2023,
+      source: 'Lý thuyết Mạch 1',
+      tags: ['trở kháng', 'tụ điện', 'số phức'],
+      isDemo: true,
+    })
+  }
 
   // === M5: Thư viện công thức kỹ thuật (Tính toán tương tác & từng bước) ===
   await formulaRepo.create({
