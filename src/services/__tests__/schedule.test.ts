@@ -254,3 +254,78 @@ describe('Task 2.6: Timetable HK1 2026-2027 & Idempotent Loader', () => {
   })
 })
 
+import { generateScheduleICS, parseICSString } from '../icsExport'
+
+describe('Task 2.7: RFC 5545 iCalendar (.ics) Export & Parser Verification', () => {
+  const semester = {
+    id: 'sem-hk1',
+    name: 'Học kỳ 1 2026-2027',
+    startDate: new Date('2026-09-07T00:00:00'),
+    weeksCount: 16,
+    isCurrent: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    tags: [],
+  }
+
+  it('Xuất .ics cho Tuần 1 sinh đúng 5 VEVENT chuẩn RFC 5545', () => {
+    const rawEntries = TIMETABLE_HK1_2026_2027.map((e, idx) => ({
+      ...e,
+      id: `class-${idx}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+
+    const ics = generateScheduleICS({
+      entries: rawEntries,
+      semester,
+      mode: 'currentWeek',
+      targetWeek: 1,
+    })
+
+    expect(ics).toContain('BEGIN:VCALENDAR')
+    expect(ics).toContain('VERSION:2.0')
+    expect(ics).toContain('END:VCALENDAR')
+
+    const parsed = parseICSString(ics)
+    expect(parsed).toHaveLength(5)
+
+    // Kiểm tra môn KTS T2 tuần 1 bắt đầu lúc 20260907T093500
+    const kts = parsed.find(e => e.summary.includes('Kỹ thuật số'))!
+    expect(kts).toBeDefined()
+    expect(kts.dtstart).toContain('20260907T093500')
+    expect(kts.dtend).toContain('20260907T120000')
+    expect(kts.location).toBe('CS3.F.06.11')
+  })
+
+  it('Xuất .ics cả học kỳ sinh đúng 76 VEVENT và áp dụng weekOverrides cho phòng học', () => {
+    const rawEntries = TIMETABLE_HK1_2026_2027.map((e, idx) => ({
+      ...e,
+      id: `class-${idx}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+
+    const ics = generateScheduleICS({
+      entries: rawEntries,
+      semester,
+      mode: 'semester',
+    })
+
+    const parsed = parseICSString(ics)
+    expect(parsed).toHaveLength(76)
+
+    // Tuần 2: TTHCM là E-LEARNING (18/09/2026 là Thứ 6 tuần 2)
+    // 07/09 + 7 ngày = 14/09 (T2 w2) + 4 ngày = 18/09/2026 (T6 w2)
+    const tthcmW2 = parsed.find(e => e.summary.includes('Tư tưởng Hồ Chí Minh') && e.dtstart.includes('20260918'))!
+    expect(tthcmW2).toBeDefined()
+    expect(tthcmW2.location).toBe('E-LEARNING')
+
+    // Tuần 4: TTHCM là MS-TEAMS (02/10/2026 là Thứ 6 tuần 4)
+    const tthcmW4 = parsed.find(e => e.summary.includes('Tư tưởng Hồ Chí Minh') && e.dtstart.includes('20261002'))!
+    expect(tthcmW4).toBeDefined()
+    expect(tthcmW4.location).toBe('MS-TEAMS')
+  })
+})
+
+

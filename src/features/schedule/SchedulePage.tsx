@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, ChevronLeft, ChevronRight, Clock, Grid, Download } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, Grid, Download, Calendar } from 'lucide-react'
 import { scheduleRepo, semesterRepo } from '@/db/repositories'
 import { loadTimetableHK1_2026_2027 } from '@/db/timetableHK1_2026_2027'
+import { generateScheduleICS, downloadICS } from '@/services/icsExport'
 import { vi } from '@/i18n/vi'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { cn, hasTimeConflict, isCurrentlyOngoing } from '@/lib/utils'
@@ -618,6 +619,27 @@ function ScheduleContent() {
     }
   }
 
+  const [showExportMenu, setShowExportMenu] = useState(false)
+
+  function handleExportICS(mode: 'currentWeek' | 'semester') {
+    if (schedules.length === 0) {
+      toast.info(vi.dashboard.noClassToday)
+      return
+    }
+    const ics = generateScheduleICS({
+      entries: schedules,
+      semester: activeSemester,
+      mode,
+      targetWeek: selectedWeek,
+    })
+    const filename = mode === 'currentWeek'
+      ? `TKB_Tuan_${selectedWeek}.ics`
+      : `TKB_${activeSemester.name.replace(/\s+/g, '_')}.ics`
+    downloadICS(ics, filename)
+    toast.success(vi.toast.exported)
+    setShowExportMenu(false)
+  }
+
   async function handleLoadHK1() {
     try {
       const res = await loadTimetableHK1_2026_2027()
@@ -756,6 +778,38 @@ function ScheduleContent() {
                   {mode === 'day' ? vi.schedule.viewDay : mode === 'week' ? vi.schedule.viewWeek : vi.schedule.viewMonth}
                 </button>
               ))}
+            </div>
+
+            {/* Nút xuất .ics */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(v => !v)}
+                aria-label={vi.schedule.exportICS}
+                className="btn-secondary text-xs flex items-center gap-1.5 py-1.5"
+                title={vi.schedule.exportICS}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">{vi.schedule.exportICS}</span>
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-lg shadow-lg py-1 z-30">
+                  <button
+                    onClick={() => handleExportICS('currentWeek')}
+                    aria-label={vi.schedule.exportICSCurrentWeek}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-dark-muted flex items-center justify-between"
+                  >
+                    <span>{vi.schedule.exportICSCurrentWeek}</span>
+                    <span className="text-[10px] text-slate-400">Tuần {selectedWeek}</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportICS('semester')}
+                    aria-label={vi.schedule.exportICSAll}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-dark-muted"
+                  >
+                    {vi.schedule.exportICSAll}
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
