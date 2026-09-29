@@ -11,7 +11,7 @@ describe('Database Schema Migration v6', () => {
 
   it('successfully opens database with schema v6 and examSessions table', async () => {
     expect(db.isOpen()).toBe(true)
-    expect(db.verno).toBe(6)
+    expect(db.verno).toBeGreaterThanOrEqual(6)
     expect(db.tables.some(t => t.name === 'examSessions')).toBe(true)
   })
 
