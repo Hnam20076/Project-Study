@@ -5,6 +5,9 @@ import {
   dateToWeekNumber,
   formatWeekLabel,
   isDateInSemester,
+  PERIOD_TIMES,
+  getPeriodTimes,
+  findPeriodsFromTimes,
 } from '../schedule'
 import { vi } from '@/i18n/vi'
 import { format } from 'date-fns'
@@ -52,5 +55,45 @@ describe('Task 2.1: Semester & Week Calculation', () => {
     expect(week).toBeNull()
     expect(isDateInSemester(afterDate, HK1_2026_2027_CONFIG)).toBe(false)
     expect(formatWeekLabel(week, HK1_2026_2027_CONFIG)).toBe(vi.schedule.outsideSemester)
+  })
+})
+
+describe('Task 2.2: PERIOD_TIMES & Period ↔ Time Conversion', () => {
+  it('Định nghĩa đủ 16 tiết học chuẩn', () => {
+    expect(PERIOD_TIMES).toHaveLength(16)
+    expect(PERIOD_TIMES[0].period).toBe(1)
+    expect(PERIOD_TIMES[15].period).toBe(16)
+  })
+
+  it('Ghi nhận comment "cần xác nhận" ở tiết 14 và tiết 15', () => {
+    const p14 = PERIOD_TIMES.find(p => p.period === 14)!
+    const p15 = PERIOD_TIMES.find(p => p.period === 15)!
+
+    expect(p14.startTime).toBe('18:50')
+    expect(p14.endTime).toBe('19:35')
+    expect(p14.note).toBe('cần xác nhận')
+
+    expect(p15.startTime).toBe('19:50')
+    expect(p15.endTime).toBe('20:20')
+    expect(p15.note).toBe('cần xác nhận')
+  })
+
+  it('Khớp chính xác giờ của các môn theo tiêu chí 6', () => {
+    // KTS T2: tiết 4-6
+    expect(getPeriodTimes(4, 6)).toEqual({ startTime: '09:35', endTime: '12:00' })
+
+    // KNCĐ T2: tiết 7-9
+    expect(getPeriodTimes(7, 9)).toEqual({ startTime: '13:00', endTime: '15:25' })
+
+    // KNCĐ CN: tiết 1-3
+    expect(getPeriodTimes(1, 3)).toEqual({ startTime: '07:00', endTime: '09:25' })
+
+    // KTS T7 (tuần 11-16): tiết 7-11
+    expect(getPeriodTimes(7, 11)).toEqual({ startTime: '13:00', endTime: '17:10' })
+  })
+
+  it('findPeriodsFromTimes ánh xạ ngược đúng giờ sang tiết', () => {
+    expect(findPeriodsFromTimes('09:35', '12:00')).toEqual({ periodStart: 4, periodEnd: 6 })
+    expect(findPeriodsFromTimes('13:00', '17:10')).toEqual({ periodStart: 7, periodEnd: 11 })
   })
 })

@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import { vi } from '@/i18n/vi'
 import type { Semester } from '@/types'
+export * from './schedulePeriods'
 
 /**
  * Cấu hình học kỳ chuẩn HK1 2026-2027
