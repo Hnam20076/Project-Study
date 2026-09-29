@@ -21,7 +21,8 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   Code, Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Quote, Code2, Table as TableIcon,
-  Undo, Redo, Clock, History
+  Undo, Redo, History,
+  RotateCw, Check, AlertTriangle
 } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { pageRepo, versionRepo } from '@/db/repositories'
@@ -38,13 +39,21 @@ interface Props {
   pageId: string
 }
 
+type SaveStatus = 'dirty' | 'saving' | 'saved' | 'error'
+
 export function PageEditor({ pageId }: Props) {
   const [page, setPage] = useState<NotePage | null>(null)
   const [title, setTitle] = useState('')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [showVersions, setShowVersions] = useState(false)
   const [versions, setVersions] = useState<NoteVersion[]>([])
   const titleRef = useRef<HTMLInputElement>(null)
+  const pendingRef = useRef<{ content: string; title: string; dirty: boolean }>({
+    content: '',
+    title: '',
+    dirty: false,
+  })
 
   // Load trang
   useEffect(() => {
@@ -53,27 +62,79 @@ export function PageEditor({ pageId }: Props) {
         setPage(p)
         setTitle(p.title)
         setSavedAt(p.updatedAt)
+        setSaveStatus('saved')
+        pendingRef.current = { content: p.content, title: p.title, dirty: false }
       }
     })
   }, [pageId])
 
+  // Flush ngay lập tức toàn bộ thay đổi chưa lưu vào DB
+  const flushPending = useCallback(async () => {
+    if (!pendingRef.current.dirty || !pageId) return
+    const { content, title: curTitle } = pendingRef.current
+    try {
+      setSaveStatus('saving')
+      const clean = DOMPurify.sanitize(content)
+      const wordCount = countWordsInHTML(clean)
+      await pageRepo.update(pageId, { content: clean, title: curTitle, wordCount })
+      await versionRepo.save(pageId, clean, wordCount)
+      pendingRef.current.dirty = false
+      setSavedAt(new Date())
+      setSaveStatus('saved')
+    } catch (e) {
+      console.error('Flush failed', e)
+      setSaveStatus('error')
+    }
+  }, [pageId])
+
   // Lưu nội dung với debounce
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const autosave = useCallback(
-    debounce(async (pageId: string, content: string, title: string) => {
+  const debouncedAutosave = useCallback(
+    debounce(async (id: string, content: string, titleStr: string) => {
       try {
+        setSaveStatus('saving')
         const clean = DOMPurify.sanitize(content)
         const wordCount = countWordsInHTML(clean)
-        await pageRepo.update(pageId, { content: clean, title, wordCount })
-        // Lưu version
-        await versionRepo.save(pageId, clean, wordCount)
+        await pageRepo.update(id, { content: clean, title: titleStr, wordCount })
+        await versionRepo.save(id, clean, wordCount)
+        if (pendingRef.current.content === content && pendingRef.current.title === titleStr) {
+          pendingRef.current.dirty = false
+        }
         setSavedAt(new Date())
+        setSaveStatus('saved')
       } catch (e) {
         console.error('Autosave failed', e)
+        setSaveStatus('error')
       }
-    }, AUTOSAVE_DELAY) as (pageId: string, content: string, title: string) => void,
+    }, AUTOSAVE_DELAY) as (id: string, content: string, titleStr: string) => void,
     []
   )
+
+  const triggerChange = useCallback((newContent: string, newTitle: string) => {
+    pendingRef.current = { content: newContent, title: newTitle, dirty: true }
+    setSaveStatus('dirty')
+    debouncedAutosave(pageId, newContent, newTitle)
+  }, [pageId, debouncedAutosave])
+
+  // Lắng nghe beforeunload, visibilitychange, unmount để flush bảo toàn dữ liệu
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushPending()
+    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPending()
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      flushPending()
+    }
+  }, [flushPending])
 
   // Editor TipTap
   const editor = useEditor({
@@ -112,7 +173,7 @@ export function PageEditor({ pageId }: Props) {
     content: page?.content ?? '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
-      autosave(pageId, html, title)
+      triggerChange(html, titleRef.current?.value ?? title)
     },
     editorProps: {
       handlePaste: (_view, event) => {
@@ -183,7 +244,7 @@ export function PageEditor({ pageId }: Props) {
   // Lưu title khi thay đổi
   async function handleTitleChange(newTitle: string) {
     setTitle(newTitle)
-    autosave(pageId, editor?.getHTML() ?? '', newTitle)
+    triggerChange(editor?.getHTML() ?? '', newTitle)
   }
 
 
@@ -361,13 +422,40 @@ export function PageEditor({ pageId }: Props) {
             <span className="hidden md:inline">{vi.notes.versions}</span>
           </button>
 
-          {/* Autosave status */}
-          {savedAt && (
-            <div className="flex items-center gap-1 text-xs text-slate-400 pl-2">
-              <Clock className="w-3 h-3" />
-              <span className="hidden md:inline">{vi.common.savedAt} {formatTime(savedAt)}</span>
-            </div>
-          )}
+          {/* Autosave status indicator */}
+          <div className="flex items-center gap-1.5 text-xs pl-2">
+            {saveStatus === 'dirty' && (
+              <span className="flex items-center gap-1 text-amber-500 font-medium">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>Đang chỉnh sửa</span>
+              </span>
+            )}
+            {saveStatus === 'saving' && (
+              <span className="flex items-center gap-1 text-blue-500 font-medium">
+                <RotateCw className="w-3 h-3 animate-spin" />
+                <span>Đang lưu…</span>
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>Đã lưu{savedAt ? ` lúc ${formatTime(savedAt)}` : ''}</span>
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="flex items-center gap-1.5 text-rose-500 font-medium">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Chưa lưu</span>
+                <button
+                  type="button"
+                  onClick={() => flushPending()}
+                  className="underline hover:text-rose-600 ml-1"
+                >
+                  Thử lại
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -341,16 +341,31 @@ export const pageRepo = {
   },
 }
 
-// === Version Repository (tối đa 20 bản/trang) ===
-const MAX_VERSIONS = 20
+// === Version Repository (tối đa 30 bản/trang, tối đa 1 bản/5phút) ===
+const MAX_VERSIONS = 30
+const MIN_SNAPSHOT_INTERVAL = 5 * 60 * 1000 // 5 phút
 
 export const versionRepo = {
   async getByPage(pageId: string): Promise<NoteVersion[]> {
     return db.noteVersions.where('pageId').equals(pageId).reverse().sortBy('savedAt')
   },
 
-  async save(pageId: string, content: string, wordCount?: number): Promise<void> {
-    await db.transaction('rw', db.noteVersions, async () => {
+  async save(pageId: string, content: string, wordCount?: number, force = false): Promise<boolean> {
+    return await db.transaction('rw', db.noteVersions, async () => {
+      const recent = await db.noteVersions.where('pageId').equals(pageId).reverse().sortBy('savedAt')
+      const latest = recent[0]
+      const nowTime = Date.now()
+
+      // Bỏ qua nếu nội dung không đổi
+      if (latest && latest.content === content) {
+        return false
+      }
+
+      // Giới hạn tần suất: tối đa 1 snapshot mỗi 5 phút (trừ khi force = true)
+      if (!force && latest && nowTime - new Date(latest.savedAt).getTime() < MIN_SNAPSHOT_INTERVAL) {
+        return false
+      }
+
       // Tạo version mới
       const version: NoteVersion = {
         id: uuidv4(),
@@ -361,12 +376,15 @@ export const versionRepo = {
       }
       await db.noteVersions.add(version)
 
-      // Giữ tối đa MAX_VERSIONS, xóa bản cũ nhất
-      const all = await db.noteVersions.where('pageId').equals(pageId).sortBy('savedAt')
-      if (all.length > MAX_VERSIONS) {
-        const toDelete = all.slice(0, all.length - MAX_VERSIONS)
-        await db.noteVersions.bulkDelete(toDelete.map(v => v.id))
+      // Giữ tối đa MAX_VERSIONS (30), xóa bản cũ nhất
+      if (recent.length + 1 > MAX_VERSIONS) {
+        const all = await db.noteVersions.where('pageId').equals(pageId).sortBy('savedAt')
+        if (all.length > MAX_VERSIONS) {
+          const toDelete = all.slice(0, all.length - MAX_VERSIONS)
+          await db.noteVersions.bulkDelete(toDelete.map(v => v.id))
+        }
       }
+      return true
     })
   },
 }
