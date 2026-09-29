@@ -50,7 +50,20 @@ Hệ điều hành học tập cá nhân chuyên biệt cho sinh viên kỹ thu�
   - **Lời giải chi tiết từng bước (Step-by-step breakdown)**: Liệt kê từng bước tính toán và công thức áp dụng.
   - **Máy tính khoa học (Scientific Calculator Pad)**: Màn hình nhập biểu thức, phím số, các hàm lượng giác, logarit, căn bậc hai, lũy thừa, hằng số $\pi$, $e$, lưu lịch sử 20 phép tính gần nhất.
 
-### ⏳ Phase 4: Tra cứu linh kiện & chân IC (M7) + Kiểm thử tích hợp toàn diện (Sắp ra mắt)
+### ✅ Phase 4: Tra cứu linh kiện & chân IC (M7) + Hoàn thiện toàn diện
+- ⚡ **Tra cứu linh kiện & IC điện tử (M7)**:
+  - **Quy tắc vàng linh kiện**: Cảnh báo bắt buộc *"Đối chiếu datasheet nhà sản xuất trước khi lắp mạch"* kèm huy hiệu `[Đã xác minh datasheet]` hoặc `[chưa xác minh — đối chiếu datasheet]`.
+  - **Visualizer sơ đồ chân (Interactive SVG Pinout)**:
+    - Hỗ trợ các kiểu đóng gói IC chuẩn: DIP-8, DIP-14, DIP-16, DIP-28, vỏ TO-92 (Transistor) và Module.
+    - Màu sắc phân loại 8 loại chân: Nguồn (Đỏ), Mass (Xám đen), GPIO (Xanh lá), Analog ADC (Tím), PWM (Cam), Giao tiếp UART/I2C/SPI (Xanh dương), Điều khiển Reset/Clock (Vàng), Cực BJT (Xám).
+    - Di chuột xem tooltip thông số kỹ thuật từng chân ($V_{max}$, $I_{max}$, chức năng).
+  - Bảng lọc và tìm kiếm chân IC hai chiều (tìm chân VCC, GND, PWM, v.v.).
+  - Mạch ứng dụng mẫu kèm sơ đồ nguyên lý và danh mục linh kiện (BOM) chi tiết.
+  - Tích hợp sẵn 5 linh kiện kỹ thuật chính xác: NE555, LM358, 74HC595, 2N2222, ATmega328P.
+- 🎯 **Tích hợp toàn hệ thống**:
+  - Dashboard liên kết nhanh toàn bộ 7 modules học tập.
+  - Command Palette (Ctrl+K) tìm kiếm tức thì cả linh kiện IC.
+  - Hỗ trợ lưu trữ offline, sao lưu/phục hồi v4 (Zod validation), PWA offline caching.
 
 ---
 
