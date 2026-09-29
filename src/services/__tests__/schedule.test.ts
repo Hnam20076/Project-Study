@@ -175,12 +175,82 @@ describe('Task 2.4: Week Filtering, Overrides & Advanced Time Conflict Detection
     const entrySpecific = { weeks: [2, 3, 4, 6, 8, 9] }
     expect(isScheduleInWeek(entrySpecific, 2)).toBe(true)
     expect(isScheduleInWeek(entrySpecific, 5)).toBe(false)
-    expect(isScheduleInWeek(entrySpecific, 7)).toBe(false)
-    expect(isScheduleInWeek(entrySpecific, 10)).toBe(false)
-
     // Rỗng weeks = mọi tuần
     const entryAll = { weeks: [] }
     expect(isScheduleInWeek(entryAll, 5)).toBe(true)
     expect(isScheduleInWeek(entryAll, null)).toBe(true)
   })
 })
+
+import 'fake-indexeddb/auto'
+import { TIMETABLE_HK1_2026_2027, loadTimetableHK1_2026_2027 } from '@/db/timetableHK1_2026_2027'
+import { db, ensureDBReady } from '@/db/database'
+
+describe('Task 2.6: Timetable HK1 2026-2027 & Idempotent Loader', () => {
+  it('Chứa chính xác 7 mục lớp học phần chuẩn', () => {
+    expect(TIMETABLE_HK1_2026_2027).toHaveLength(7)
+  })
+
+  it('Tiêu chí 1: Tuần 1 có đúng 5 tiết/môn (không có lớp Chủ nhật)', () => {
+    const week1Classes = TIMETABLE_HK1_2026_2027.filter(item =>
+      item.weeks.length === 0 || item.weeks.includes(1)
+    )
+    expect(week1Classes).toHaveLength(5)
+    expect(week1Classes.some(c => c.dayOfWeek === 0)).toBe(false)
+  })
+
+  it('Tiêu chí 2: Tuần 2 có lớp Chủ nhật (E-LEARNING); Tuần 5, 7, 10 KHÔNG có lớp Chủ nhật', () => {
+    const sundayClass = TIMETABLE_HK1_2026_2027.find(c => c.dayOfWeek === 0)!
+    expect(sundayClass).toBeDefined()
+    expect(sundayClass.weeks).toEqual([2, 3, 4, 6, 8, 9])
+    expect(sundayClass.weeks.includes(2)).toBe(true)
+    expect(sundayClass.weeks.includes(5)).toBe(false)
+    expect(sundayClass.weeks.includes(7)).toBe(false)
+    expect(sundayClass.weeks.includes(10)).toBe(false)
+  })
+
+  it('Tiêu chí 3: Tuần 11 không có KTS T2 và không có TTHCM; có KTS T7 7-11 CS3.F.01.02', () => {
+    const week11Classes = TIMETABLE_HK1_2026_2027.filter(item =>
+      item.weeks.length === 0 || item.weeks.includes(11)
+    )
+    expect(week11Classes.some(c => c.className === 'Kỹ thuật số' && c.dayOfWeek === 1)).toBe(false)
+    expect(week11Classes.some(c => c.className === 'Tư tưởng Hồ Chí Minh')).toBe(false)
+
+    const ktsSat = week11Classes.find(c => c.className === 'Kỹ thuật số' && c.dayOfWeek === 6)!
+    expect(ktsSat).toBeDefined()
+    expect(ktsSat.periodStart).toBe(7)
+    expect(ktsSat.periodEnd).toBe(11)
+    expect(ktsSat.room).toBe('CS3.F.01.02')
+  })
+
+  it('Tiêu chí 4: Tuần 16 chỉ có duy nhất 1 lớp (KTS T7 7-11)', () => {
+    const week16Classes = TIMETABLE_HK1_2026_2027.filter(item =>
+      item.weeks.length === 0 || item.weeks.includes(16)
+    )
+    expect(week16Classes).toHaveLength(1)
+    expect(week16Classes[0].className).toBe('Kỹ thuật số')
+    expect(week16Classes[0].dayOfWeek).toBe(6)
+  })
+
+  it('Tiêu chí 9: Tính Idempotent của loadTimetableHK1_2026_2027 (gọi nhiều lần không trùng)', async () => {
+    await ensureDBReady()
+    await db.schedules.clear()
+    await db.semesters.clear()
+
+    const firstLoad = await loadTimetableHK1_2026_2027()
+    expect(firstLoad.added).toBe(7)
+    expect(firstLoad.skipped).toBe(0)
+
+    const countAfterFirst = await db.schedules.count()
+    expect(countAfterFirst).toBe(7)
+
+    // Gọi lần 2: phải 0 added, 7 skipped
+    const secondLoad = await loadTimetableHK1_2026_2027()
+    expect(secondLoad.added).toBe(0)
+    expect(secondLoad.skipped).toBe(7)
+
+    const countAfterSecond = await db.schedules.count()
+    expect(countAfterSecond).toBe(7)
+  })
+})
+

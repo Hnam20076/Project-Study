@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, ChevronLeft, ChevronRight, Clock, Grid } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, Grid, Download } from 'lucide-react'
 import { scheduleRepo, semesterRepo } from '@/db/repositories'
+import { loadTimetableHK1_2026_2027 } from '@/db/timetableHK1_2026_2027'
 import { vi } from '@/i18n/vi'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { cn, hasTimeConflict, isCurrentlyOngoing } from '@/lib/utils'
@@ -617,6 +618,19 @@ function ScheduleContent() {
     }
   }
 
+  async function handleLoadHK1() {
+    try {
+      const res = await loadTimetableHK1_2026_2027()
+      if (res.added > 0) {
+        toast.success(`${vi.schedule.loadHK1Success} (${res.added} môn)`)
+      } else {
+        toast.info(vi.schedule.loadHK1AlreadyLoaded)
+      }
+    } catch {
+      toast.error(vi.errors.saveFailed)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -743,6 +757,16 @@ function ScheduleContent() {
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={handleLoadHK1}
+              aria-label={vi.schedule.loadHK1Timetable}
+              className="btn-secondary text-xs flex items-center gap-1.5 py-1.5"
+              title={vi.schedule.loadHK1Timetable}
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{vi.schedule.loadHK1Timetable}</span>
+            </button>
 
             <button onClick={handleNewClass} aria-label={vi.schedule.addClass} className="btn-primary">
               <Plus className="w-4 h-4" />
