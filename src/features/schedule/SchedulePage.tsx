@@ -269,10 +269,10 @@ function WeekPeriodView({
                 className="h-12 border-b border-slate-100 dark:border-dark-border/30 px-2 flex flex-col justify-center text-right"
               >
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                  T{p.period}
+                  Tiết {p.period}
                 </span>
                 <span className="text-[10px] text-slate-400 leading-tight">
-                  {p.startTime}–{p.endTime}
+                  {p.startTime} – {p.endTime}
                 </span>
               </div>
             ))}
