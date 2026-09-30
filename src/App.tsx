@@ -12,6 +12,7 @@ import { CalculatorPage } from '@/features/calculator/CalculatorPage'
 import { ComponentsPage } from '@/features/components'
 import { TasksPage } from '@/features/tasks'
 import { PlannerPage } from '@/features/planner'
+import { FocusPage } from '@/features/focus'
 import { useThemeStore } from '@/stores/uiStore'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="schedule/*" element={<SchedulePage />} />
           <Route path="planner/*" element={<PlannerPage />} />
           <Route path="tasks/*" element={<TasksPage />} />
+          <Route path="focus/*" element={<FocusPage />} />
           <Route path="notes/*" element={<NotesPage />} />
           <Route path="mindmap/*" element={<MindMapPage />} />
           <Route path="quiz/*" element={<QuizPage />} />
