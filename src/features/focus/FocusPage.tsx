@@ -41,102 +41,53 @@ const POMODORO_DURATIONS: Record<PomodoroStage, number> = {
   longBreak: 15 * 60,
 }
 
+interface SavedFocusState {
+  mode?: FocusMode
+  stage?: PomodoroStage
+  status?: TimerStatus
+  targetEndTime?: number | null
+  remainingSeconds?: number
+  startedAt?: number | null
+  elapsedSeconds?: number
+  customMinutes?: number
+  pomodoroCount?: number
+  selectedSubjectId?: string
+  selectedTaskId?: string
+}
+
+function getSavedFocusState(): SavedFocusState | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) return JSON.parse(saved)
+  } catch {
+    // Ignore JSON parse or storage read errors
+  }
+  return null
+}
+
 export function FocusPage() {
+  const savedState = useMemo(() => getSavedFocusState(), [])
+
   // Load persisted state or defaults
-  const [mode, setMode] = useState<FocusMode>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).mode ?? 'pomodoro'
-    } catch {}
-    return 'pomodoro'
-  })
-
-  const [stage, setStage] = useState<PomodoroStage>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).stage ?? 'work'
-    } catch {}
-    return 'work'
-  })
-
-  const [status, setStatus] = useState<TimerStatus>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).status ?? 'idle'
-    } catch {}
-    return 'idle'
-  })
-
-  const [targetEndTime, setTargetEndTime] = useState<number | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).targetEndTime ?? null
-    } catch {}
-    return null
-  })
-
+  const [mode, setMode] = useState<FocusMode>(savedState?.mode ?? 'pomodoro')
+  const [stage, setStage] = useState<PomodoroStage>(savedState?.stage ?? 'work')
+  const [status, setStatus] = useState<TimerStatus>(savedState?.status ?? 'idle')
+  const [targetEndTime, setTargetEndTime] = useState<number | null>(savedState?.targetEndTime ?? null)
   const [remainingSeconds, setRemainingSeconds] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed.status === 'running' && parsed.targetEndTime) {
-          const diff = Math.max(0, Math.ceil((parsed.targetEndTime - Date.now()) / 1000))
-          return diff
-        }
-        return parsed.remainingSeconds ?? POMODORO_DURATIONS.work
+    if (savedState) {
+      if (savedState.status === 'running' && savedState.targetEndTime) {
+        return Math.max(0, Math.ceil((savedState.targetEndTime - Date.now()) / 1000))
       }
-    } catch {}
+      return savedState.remainingSeconds ?? POMODORO_DURATIONS.work
+    }
     return POMODORO_DURATIONS.work
   })
-
-  const [startedAt, setStartedAt] = useState<number | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).startedAt ?? null
-    } catch {}
-    return null
-  })
-
-  const [elapsedSeconds, setElapsedSeconds] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).elapsedSeconds ?? 0
-    } catch {}
-    return 0
-  })
-
-  const [customMinutes, setCustomMinutes] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).customMinutes ?? 30
-    } catch {}
-    return 30
-  })
-
-  const [pomodoroCount, setPomodoroCount] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).pomodoroCount ?? 0
-    } catch {}
-    return 0
-  })
-
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).selectedSubjectId ?? ''
-    } catch {}
-    return ''
-  })
-
-  const [selectedTaskId, setSelectedTaskId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).selectedTaskId ?? ''
-    } catch {}
-    return ''
-  })
+  const [startedAt, setStartedAt] = useState<number | null>(savedState?.startedAt ?? null)
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(savedState?.elapsedSeconds ?? 0)
+  const [customMinutes, setCustomMinutes] = useState<number>(savedState?.customMinutes ?? 30)
+  const [pomodoroCount, setPomodoroCount] = useState<number>(savedState?.pomodoroCount ?? 0)
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(savedState?.selectedSubjectId ?? '')
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(savedState?.selectedTaskId ?? '')
 
   // Reference lists
   const [tasks, setTasks] = useState<Task[]>([])

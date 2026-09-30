@@ -201,7 +201,7 @@ export const MindMapCanvas: React.FC<Props> = ({ mindmap, onSave }) => {
         y: target.y + 80,
       }
 
-      let newEdges = [...internalEdges]
+      const newEdges = [...internalEdges]
       if (parentId) {
         newEdges.push({
           id: `e-${parentId}-${newId}`,

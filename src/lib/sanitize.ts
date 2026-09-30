@@ -17,7 +17,7 @@ const SANITIZE_CONFIG: Record<string, any> = {
     'colspan', 'rowspan', 'colwidth'
   ],
   // Cho phép URL an toàn gồm idb:, blob:, data:, http, https
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|blob|data|idb):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|blob|data|idb):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$)|\/)/i,
   ADD_ATTR: ['data-latex'],
 }
 

@@ -152,7 +152,7 @@ export function exportMindMapPNG(map: MindMap): Promise<void> {
  */
 export async function convertMindMapToNotePage(map: MindMap): Promise<string> {
   // Lấy hoặc tạo notebook mặc định
-  let notebooks = await notebookRepo.getAll()
+  const notebooks = await notebookRepo.getAll()
   let notebookId: string
   if (notebooks.length === 0) {
     const nb = await notebookRepo.create({
@@ -167,7 +167,7 @@ export async function convertMindMapToNotePage(map: MindMap): Promise<string> {
   }
 
   // Lấy hoặc tạo section
-  let sections = await sectionRepo.getByNotebook(notebookId)
+  const sections = await sectionRepo.getByNotebook(notebookId)
   let sectionId: string
   if (sections.length === 0) {
     const sec = await sectionRepo.create({

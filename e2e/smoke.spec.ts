@@ -17,7 +17,9 @@ test.describe('A1: Canvas height', () => {
     expect(height).toBeGreaterThanOrEqual(400);
     try {
       await page.screenshot({ path: path.join(artifactsDir, `A1-mindmap-${testInfo.project.name}.png`), timeout: 3000 });
-    } catch {}
+    } catch {
+      // ignore
+    }
   });
 
   test('A1: /knowledge .react-flow clientHeight >= 400', async ({ page }, testInfo) => {
@@ -29,7 +31,9 @@ test.describe('A1: Canvas height', () => {
     expect(height).toBeGreaterThanOrEqual(400);
     try {
       await page.screenshot({ path: path.join(artifactsDir, `A1-knowledge-${testInfo.project.name}.png`), timeout: 3000 });
-    } catch {}
+    } catch {
+      // ignore
+    }
   });
 });
 
@@ -51,7 +55,7 @@ test.describe('A2: Sidebar position and horizontal scroll', () => {
     expect(box!.x).toBeGreaterThan(200);
   });
 
-  test('A2: scrollWidth equals clientWidth (no horizontal scroll)', async ({ page }, testInfo) => {
+  test('A2: scrollWidth equals clientWidth (no horizontal scroll)', async ({ page }, _testInfo) => {
     const routes = ['./dashboard', './notes', './mindmap', './quiz', './calculator', './knowledge'];
     for (const route of routes) {
       await page.goto(route);

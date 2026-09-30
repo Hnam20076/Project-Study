@@ -95,7 +95,7 @@ export function applyAutoLayout(
     const H_GAP = 280
     const V_GAP = 90
 
-    function layoutHorizontal(node: HierarchyNode): number {
+    const layoutHorizontal = (node: HierarchyNode): number => {
       const x = node.depth * H_GAP
       if (node.children.length === 0) {
         const y = node.leafIndex * V_GAP
@@ -114,7 +114,7 @@ export function applyAutoLayout(
     const V_GAP = 160
     const H_GAP = 220
 
-    function layoutVertical(node: HierarchyNode): number {
+    const layoutVertical = (node: HierarchyNode): number => {
       const y = node.depth * V_GAP
       if (node.children.length === 0) {
         const x = node.leafIndex * H_GAP
@@ -132,11 +132,11 @@ export function applyAutoLayout(
   } else if (direction === 'radial') {
     const BASE_RADIUS = 220
 
-    function layoutRadial(
+    const layoutRadial = (
       node: HierarchyNode,
       startAngle: number,
       endAngle: number
-    ) {
+    ) => {
       if (node.depth === 0) {
         posMap.set(node.id, { x: 0, y: 0 })
       } else {
