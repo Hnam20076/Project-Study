@@ -12,7 +12,7 @@ describe('Database Schema Migration v8 & SRS Flashcard Repository (Task 4.1)', (
 
   it('successfully opens database with schema v8 and flashcards table', async () => {
     expect(db.isOpen()).toBe(true)
-    expect(db.verno).toBe(8)
+    expect(db.verno).toBeGreaterThanOrEqual(8)
     expect(db.tables.some(t => t.name === 'flashcards')).toBe(true)
   })
 

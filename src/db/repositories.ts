@@ -25,6 +25,9 @@ import type {
   Semester,
   Flashcard,
   SRSReviewRating,
+  Task,
+  StudySession,
+  TaskStatus,
 } from '@/types'
 import { calculateSRS } from '@/services/srsAlgorithm'
 
@@ -726,6 +729,7 @@ export async function deleteAllDemoData(): Promise<void> {
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
     db.electronicComponents, db.semesters, db.flashcards,
+    db.tasks, db.studySessions,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -744,6 +748,8 @@ export async function deleteAllDemoData(): Promise<void> {
     await componentRepo.deleteDemoData()
     await semesterRepo.deleteDemoData()
     await flashcardRepo.deleteDemoData()
+    await taskRepo.deleteDemoData()
+    await studySessionRepo.deleteDemoData()
 
     // noteVersions và noteImages của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()
@@ -954,4 +960,143 @@ export const flashcardRepo = {
     await db.flashcards.filter(c => c.isDemo === true).delete()
   },
 }
+
+// === Task Helper: Kiểm tra quá hạn động ===
+export function isTaskOverdue(task: Task): boolean {
+  if (!task.deadline) return false
+  if (task.status === 'completed' || task.status === 'archived') return false
+  const deadlineTime = new Date(task.deadline).getTime()
+  return !isNaN(deadlineTime) && deadlineTime < Date.now()
+}
+
+// === Task Repository (Phase S5 - Kế hoạch & Nhiệm vụ) ===
+export const taskRepo = {
+  async getAll(): Promise<Task[]> {
+    const list = await db.tasks.toArray()
+    return list.sort((a, b) => {
+      // Ưu tiên: urgent (4) -> high (3) -> medium (2) -> low (1)
+      const pMap: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 }
+      const pDiff = (pMap[b.priority] || 0) - (pMap[a.priority] || 0)
+      if (pDiff !== 0) return pDiff
+      if (a.deadline && b.deadline) {
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+      }
+      if (a.deadline) return -1
+      if (b.deadline) return 1
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+  },
+
+  async getById(id: string): Promise<Task | undefined> {
+    return db.tasks.get(id)
+  },
+
+  async getBySubject(subjectId: string): Promise<Task[]> {
+    return db.tasks.where('subjectId').equals(subjectId).toArray()
+  },
+
+  async getByStatus(status: TaskStatus): Promise<Task[]> {
+    return db.tasks.where('status').equals(status).toArray()
+  },
+
+  async getOverdue(): Promise<Task[]> {
+    const all = await db.tasks.toArray()
+    return all.filter(isTaskOverdue)
+  },
+
+  async create(data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
+    const task: Task = {
+      ...baseFields(),
+      ...data,
+      status: data.status || 'todo',
+      priority: data.priority || 'medium',
+    }
+    await db.tasks.add(task)
+    return task
+  },
+
+  async update(id: string, data: Partial<Task>): Promise<void> {
+    const patch: Partial<Task> = { ...data, updatedAt: now() }
+    if (data.status === 'completed' && !data.completedAt) {
+      patch.completedAt = now()
+    } else if (data.status && data.status !== 'completed') {
+      patch.completedAt = undefined
+    }
+    await db.tasks.update(id, patch)
+  },
+
+  async toggleComplete(id: string): Promise<Task | undefined> {
+    const task = await db.tasks.get(id)
+    if (!task) return undefined
+    const isComp = task.status === 'completed'
+    const newStatus: TaskStatus = isComp ? 'todo' : 'completed'
+    const patch: Partial<Task> = {
+      status: newStatus,
+      completedAt: isComp ? undefined : now(),
+      updatedAt: now(),
+    }
+    await db.tasks.update(id, patch)
+    return { ...task, ...patch }
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.transaction('rw', [db.tasks, db.links], async () => {
+      await db.tasks.delete(id)
+      await db.links.where('fromId').equals(id).delete()
+      await db.links.where('toId').equals(id).delete()
+    })
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.tasks.filter(t => t.isDemo === true).delete()
+  },
+}
+
+// === StudySession Repository (Phase S5 - Focus & Pomodoro) ===
+export const studySessionRepo = {
+  async getAll(): Promise<StudySession[]> {
+    const list = await db.studySessions.toArray()
+    return list.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+  },
+
+  async getRecent(limit = 10): Promise<StudySession[]> {
+    const list = await this.getAll()
+    return list.slice(0, limit)
+  },
+
+  async getByTask(taskId: string): Promise<StudySession[]> {
+    return db.studySessions.where('taskId').equals(taskId).toArray()
+  },
+
+  async getBySubject(subjectId: string): Promise<StudySession[]> {
+    return db.studySessions.where('subjectId').equals(subjectId).toArray()
+  },
+
+  async create(data: Omit<StudySession, 'id' | 'createdAt' | 'updatedAt'>): Promise<StudySession> {
+    const session: StudySession = {
+      ...baseFields(),
+      ...data,
+    }
+    await db.studySessions.add(session)
+    return session
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.studySessions.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.studySessions.filter(s => s.isDemo === true).delete()
+  },
+
+  async getTodayTotalMinutes(): Promise<number> {
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    const list = await db.studySessions.toArray()
+    return list
+      .filter(s => new Date(s.startedAt).getTime() >= startOfDay.getTime())
+      .reduce((sum, s) => sum + (s.durationMinutes || 0), 0)
+  },
+}
+
 

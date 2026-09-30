@@ -1,9 +1,24 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Calendar, BookOpen, Network, Globe2, GraduationCap, Calculator, Cpu } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Calendar,
+  BookOpen,
+  Network,
+  Globe2,
+  GraduationCap,
+  Calculator,
+  Cpu,
+  CheckSquare,
+  CalendarDays,
+  Timer,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+  { path: '/planner', icon: CalendarDays, label: 'Kế hoạch' },
+  { path: '/tasks', icon: CheckSquare, label: 'Nhiệm vụ' },
+  { path: '/focus', icon: Timer, label: 'Tập trung' },
   { path: '/schedule', icon: Calendar, label: 'Lịch' },
   { path: '/notes', icon: BookOpen, label: 'Ghi chú' },
   { path: '/mindmap', icon: Network, label: 'Sơ đồ' },
@@ -18,7 +33,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-dark-border safe-area-bottom">
-      <div className="flex">
+      <div className="flex overflow-x-auto scrollbar-none">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const isActive = location.pathname.startsWith(item.path)

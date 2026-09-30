@@ -20,10 +20,12 @@ import type {
   StoredExamSession,
   Semester,
   Flashcard,
+  Task,
+  StudySession,
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 8
+const DB_VERSION = 9
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -51,6 +53,8 @@ class StudyOSDatabase extends Dexie {
   examSessions!: Table<StoredExamSession>
   semesters!: Table<Semester>
   flashcards!: Table<Flashcard>
+  tasks!: Table<Task>
+  studySessions!: Table<StudySession>
 
   constructor() {
     super('StudyOSDatabase')
@@ -101,10 +105,17 @@ class StudyOSDatabase extends Dexie {
       // Version 7 migration: khởi tạo bảng semesters và bổ sung index classGroupCode cho schedules
     })
 
-    this.version(DB_VERSION).stores({
+    this.version(8).stores({
       flashcards: 'id, subjectId, topicId, nextReviewDate, isDemo, createdAt',
     }).upgrade(() => {
       // Version 8 migration: khởi tạo bảng flashcards cho module học tập SRS
+    })
+
+    this.version(DB_VERSION).stores({
+      tasks: 'id, subjectId, topicId, semesterId, projectId, status, priority, deadline, completedAt, isDemo, createdAt',
+      studySessions: 'id, subjectId, topicId, taskId, startedAt, isDemo, createdAt',
+    }).upgrade(() => {
+      // Version 9 migration: khởi tạo bảng tasks và studySessions cho Phase S5 (Kế hoạch, Focus)
     })
   }
 }

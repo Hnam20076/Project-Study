@@ -41,6 +41,8 @@ export type EntityType =
   | 'schedule'
   | 'subject'
   | 'topic'
+  | 'task'
+  | 'study_session'
 
 export type LinkKind = 'wiki' | 'reference' | 'related' | 'prerequisite'
 
@@ -124,6 +126,40 @@ export interface NoteImage {
   updatedAt?: Date
 }
 
+// === Kế hoạch & Nhiệm vụ (Phase S5) ===
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'archived'
+
+export interface Task extends BaseEntity {
+  title: string
+  description?: string
+  subjectId?: string
+  topicId?: string
+  semesterId?: string
+  projectId?: string
+  status: TaskStatus
+  priority: TaskPriority
+  deadline?: Date | string
+  completedAt?: Date | string
+  estimatedMinutes?: number
+  actualMinutes?: number
+  order?: number
+}
+
+// === Focus & Phiên học (Phase S5) ===
+export type FocusMode = 'pomodoro' | 'custom' | 'stopwatch'
+
+export interface StudySession extends BaseEntity {
+  subjectId?: string
+  topicId?: string
+  taskId?: string
+  mode: FocusMode
+  durationMinutes: number
+  startedAt: Date | string
+  completedAt: Date | string
+  notes?: string
+}
+
 // === Theme ===
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -161,6 +197,8 @@ export interface ExportData {
   calcHistory?: CalcHistoryItem[]
   electronicComponents?: ElectronicComponent[]
   flashcards?: Flashcard[]
+  tasks?: Task[]
+  studySessions?: StudySession[]
 }
 
 export * from './mindmapKnowledge'

@@ -286,6 +286,33 @@ const FlashcardSchema = BaseEntitySchema.extend({
   questionId: z.string().optional(),
 })
 
+const TaskSchema = BaseEntitySchema.extend({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  subjectId: z.string().optional(),
+  topicId: z.string().optional(),
+  semesterId: z.string().optional(),
+  projectId: z.string().optional(),
+  status: z.enum(['todo', 'in_progress', 'completed', 'archived']),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  deadline: z.string().or(z.coerce.date()).optional(),
+  completedAt: z.string().or(z.coerce.date()).optional(),
+  estimatedMinutes: z.number().optional(),
+  actualMinutes: z.number().optional(),
+  order: z.number().optional(),
+})
+
+const StudySessionSchema = BaseEntitySchema.extend({
+  subjectId: z.string().optional(),
+  topicId: z.string().optional(),
+  taskId: z.string().optional(),
+  mode: z.enum(['pomodoro', 'custom', 'stopwatch']),
+  durationMinutes: z.number(),
+  startedAt: z.string().or(z.coerce.date()),
+  completedAt: z.string().or(z.coerce.date()),
+  notes: z.string().optional(),
+})
+
 const ExportDataSchema = z.object({
   version: z.number(),
   exportedAt: z.string(),
@@ -313,6 +340,8 @@ const ExportDataSchema = z.object({
   calcHistory: z.array(CalcHistorySchema).optional(),
   electronicComponents: z.array(ElectronicComponentSchema).optional(),
   flashcards: z.array(FlashcardSchema).optional(),
+  tasks: z.array(TaskSchema).optional(),
+  studySessions: z.array(StudySessionSchema).optional(),
   noteImages: z.array(z.object({
     id: z.string(),
     pageId: z.string(),
@@ -350,6 +379,8 @@ export async function exportAllData(): Promise<ExportData> {
     electronicComponents,
     semesters,
     flashcards,
+    tasks,
+    studySessions,
     rawNoteImages,
   ] = await Promise.all([
     db.subjects.toArray(),
@@ -370,6 +401,8 @@ export async function exportAllData(): Promise<ExportData> {
     db.electronicComponents.toArray(),
     db.semesters.toArray(),
     db.flashcards.toArray(),
+    db.tasks.toArray(),
+    db.studySessions.toArray(),
     db.noteImages.toArray(),
   ])
 
@@ -411,6 +444,8 @@ export async function exportAllData(): Promise<ExportData> {
     calcHistory,
     electronicComponents,
     flashcards,
+    tasks,
+    studySessions,
   }
 }
 
@@ -430,6 +465,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
     db.electronicComponents, db.semesters, db.flashcards,
+    db.tasks, db.studySessions,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -452,6 +488,8 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.electronicComponents.clear(),
       db.semesters.clear(),
       db.flashcards.clear(),
+      db.tasks.clear(),
+      db.studySessions.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -473,6 +511,8 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.calcHistory && parsed.calcHistory.length > 0) await db.calcHistory.bulkAdd(parsed.calcHistory as never[])
     if (parsed.electronicComponents && parsed.electronicComponents.length > 0) await db.electronicComponents.bulkAdd(parsed.electronicComponents as never[])
     if (parsed.flashcards && parsed.flashcards.length > 0) await db.flashcards.bulkAdd(parsed.flashcards as never[])
+    if (parsed.tasks && parsed.tasks.length > 0) await db.tasks.bulkAdd(parsed.tasks as never[])
+    if (parsed.studySessions && parsed.studySessions.length > 0) await db.studySessions.bulkAdd(parsed.studySessions as never[])
 
     // Khôi phục noteImages nếu có trong payload
     if (parsed.noteImages && parsed.noteImages.length > 0) {
