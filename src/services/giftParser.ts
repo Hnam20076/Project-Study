@@ -6,10 +6,15 @@ import type { Question, QuestionOption, QuestionType } from '@/types'
  */
 export function parseGIFT(text: string, defaultSubjectId: string, defaultTopicId?: string): Question[] {
   const questions: Question[] = []
-  const blocks = text
+  const cleanedText = text
+    .split(/\r?\n/)
+    .filter(line => !line.trim().startsWith('//'))
+    .join('\n')
+
+  const blocks = cleanedText
     .split(/\n\s*\n/)
     .map(b => b.trim())
-    .filter(b => b.length > 0 && !b.startsWith('//'))
+    .filter(b => b.length > 0)
 
   for (const block of blocks) {
     let title = ''
