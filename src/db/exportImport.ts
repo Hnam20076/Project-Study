@@ -1,6 +1,24 @@
 import { z } from 'zod'
 import type { ExportData } from '@/types'
 import { db } from './database'
+import { dataUrlToBlob } from '@/services/noteMigration'
+
+/**
+ * Chuyển Blob thành Data URL dạng base64
+ */
+export async function blobToDataUrl(blob: Blob): Promise<string> {
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  }
+  const arrayBuffer = await blob.arrayBuffer()
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  return `data:${blob.type || 'image/png'};base64,${base64}`
+}
 
 // Zod schema để validate dữ liệu nhập
 const BaseEntitySchema = z.object({
@@ -279,12 +297,22 @@ const ExportDataSchema = z.object({
   formulas: z.array(FormulaSchema).optional(),
   calcHistory: z.array(CalcHistorySchema).optional(),
   electronicComponents: z.array(ElectronicComponentSchema).optional(),
+  noteImages: z.array(z.object({
+    id: z.string(),
+    pageId: z.string(),
+    dataUrl: z.string(),
+    mimeType: z.string(),
+    fileName: z.string().optional(),
+    size: z.number().optional(),
+    createdAt: z.string().or(z.coerce.date()),
+    updatedAt: z.string().or(z.coerce.date()).optional(),
+  })).optional(),
 })
 
 export const EXPORT_VERSION = 5
 
 /**
- * Xuất toàn bộ dữ liệu ra JSON
+ * Xuất toàn bộ dữ liệu ra JSON (bao gồm ảnh ghi chú dạng base64)
  */
 export async function exportAllData(): Promise<ExportData> {
   const [
@@ -305,6 +333,7 @@ export async function exportAllData(): Promise<ExportData> {
     calcHistory,
     electronicComponents,
     semesters,
+    rawNoteImages,
   ] = await Promise.all([
     db.subjects.toArray(),
     db.topics.toArray(),
@@ -323,7 +352,24 @@ export async function exportAllData(): Promise<ExportData> {
     db.calcHistory.toArray(),
     db.electronicComponents.toArray(),
     db.semesters.toArray(),
+    db.noteImages.toArray(),
   ])
+
+  // Chuyển đổi Blob thành dataUrl để serialize JSON trọn vẹn
+  const exportedImages = await Promise.all(
+    rawNoteImages.map(async (img) => ({
+      id: img.id,
+      pageId: img.pageId,
+      dataUrl: await blobToDataUrl(img.blob),
+      mimeType: img.mimeType,
+      fileName: img.fileName,
+      size: img.size || img.blob.size,
+      createdAt: typeof img.createdAt === 'string' ? img.createdAt : img.createdAt.toISOString(),
+      updatedAt: img.updatedAt
+        ? (typeof img.updatedAt === 'string' ? img.updatedAt : img.updatedAt.toISOString())
+        : undefined,
+    }))
+  )
 
   return {
     version: EXPORT_VERSION,
@@ -337,6 +383,7 @@ export async function exportAllData(): Promise<ExportData> {
     sections,
     pages,
     noteVersions,
+    noteImages: exportedImages,
     mindmaps,
     knowledgeNodes,
     knowledgeEdges,
@@ -350,6 +397,7 @@ export async function exportAllData(): Promise<ExportData> {
 
 /**
  * Nhập dữ liệu từ JSON, validate bằng zod trước khi ghi
+ * Tương thích ngược với các file export cũ không có noteImages
  * @throws Error nếu dữ liệu không hợp lệ
  */
 export async function importAllData(raw: unknown): Promise<void> {
@@ -359,7 +407,7 @@ export async function importAllData(raw: unknown): Promise<void> {
   // Ghi vào database trong một transaction lớn
   await db.transaction('rw', [
     db.subjects, db.topics, db.links, db.schedules,
-    db.notebooks, db.sections, db.pages, db.noteVersions,
+    db.notebooks, db.sections, db.pages, db.noteVersions, db.noteImages,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
     db.electronicComponents, db.semesters,
@@ -374,6 +422,7 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.sections.clear(),
       db.pages.clear(),
       db.noteVersions.clear(),
+      db.noteImages.clear(),
       db.mindmaps.clear(),
       db.knowledgeNodes.clear(),
       db.knowledgeEdges.clear(),
@@ -403,6 +452,24 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.formulas && parsed.formulas.length > 0) await db.formulas.bulkAdd(parsed.formulas as never[])
     if (parsed.calcHistory && parsed.calcHistory.length > 0) await db.calcHistory.bulkAdd(parsed.calcHistory as never[])
     if (parsed.electronicComponents && parsed.electronicComponents.length > 0) await db.electronicComponents.bulkAdd(parsed.electronicComponents as never[])
+
+    // Khôi phục noteImages nếu có trong payload
+    if (parsed.noteImages && parsed.noteImages.length > 0) {
+      const imageRecords = parsed.noteImages.map((img) => {
+        const { blob } = dataUrlToBlob(img.dataUrl)
+        return {
+          id: img.id,
+          pageId: img.pageId,
+          blob,
+          mimeType: img.mimeType || blob.type,
+          fileName: img.fileName,
+          size: img.size || blob.size,
+          createdAt: new Date(img.createdAt),
+          updatedAt: img.updatedAt ? new Date(img.updatedAt) : new Date(img.createdAt),
+        }
+      })
+      await db.noteImages.bulkAdd(imageRecords as never[])
+    }
   })
 }
 

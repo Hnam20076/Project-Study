@@ -128,6 +128,17 @@ export interface NoteImage {
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 // === Xuất nhập ===
+export interface ExportedNoteImage {
+  id: string
+  pageId: string
+  dataUrl: string
+  mimeType: string
+  fileName?: string
+  size?: number
+  createdAt: string | Date
+  updatedAt?: string | Date
+}
+
 export interface ExportData {
   version: number
   exportedAt: string      // ISO string
@@ -140,6 +151,7 @@ export interface ExportData {
   sections: NoteSection[]
   pages: NotePage[]
   noteVersions: NoteVersion[]
+  noteImages?: ExportedNoteImage[]
   mindmaps?: MindMap[]
   knowledgeNodes?: KnowledgeNode[]
   knowledgeEdges?: KnowledgeEdge[]

@@ -716,7 +716,7 @@ export const componentRepo = {
 export async function deleteAllDemoData(): Promise<void> {
   await db.transaction('rw', [
     db.subjects, db.topics, db.links, db.schedules,
-    db.notebooks, db.sections, db.pages, db.noteVersions,
+    db.notebooks, db.sections, db.pages, db.noteVersions, db.noteImages,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
     db.electronicComponents, db.semesters,
@@ -728,6 +728,7 @@ export async function deleteAllDemoData(): Promise<void> {
     await notebookRepo.deleteDemoData()
     await sectionRepo.deleteDemoData()
     await pageRepo.deleteDemoData()
+    await imageRepo.deleteDemoData()
     await mindmapRepo.deleteDemoData()
     await knowledgeNodeRepo.deleteDemoData()
     await knowledgeEdgeRepo.deleteDemoData()
@@ -737,7 +738,7 @@ export async function deleteAllDemoData(): Promise<void> {
     await componentRepo.deleteDemoData()
     await semesterRepo.deleteDemoData()
 
-    // noteVersions của demo pages sẽ bị orphan - dọn dẹp
+    // noteVersions và noteImages của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()
     const allVersions = await db.noteVersions.toArray()
     const orphanVersionIds = allVersions
@@ -745,6 +746,14 @@ export async function deleteAllDemoData(): Promise<void> {
       .map(v => v.id)
     if (orphanVersionIds.length > 0) {
       await db.noteVersions.bulkDelete(orphanVersionIds)
+    }
+
+    const allImages = await db.noteImages.toArray()
+    const orphanImageIds = allImages
+      .filter(img => !remainingPageIds.includes(img.pageId))
+      .map(img => img.id)
+    if (orphanImageIds.length > 0) {
+      await db.noteImages.bulkDelete(orphanImageIds)
     }
   })
 }
