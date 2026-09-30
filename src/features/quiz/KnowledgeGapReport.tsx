@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts'
-import { AlertCircle, CheckCircle2, BookOpen, Network, Globe2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, BookOpen, Network, Globe2, Layers } from 'lucide-react'
 import { vi } from '@/i18n/vi'
 import { useNavigate } from 'react-router-dom'
 import type { TopicGapAnalysis } from '@/types'
@@ -137,6 +137,7 @@ export const KnowledgeGapReport: React.FC<Props> = ({
                     onClick={() => navigate('/notes')}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium transition-colors"
                     title={vi.quiz.openNote}
+                    aria-label={vi.quiz.openNote}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Ghi chú</span>
@@ -146,6 +147,7 @@ export const KnowledgeGapReport: React.FC<Props> = ({
                     onClick={() => navigate('/mindmap')}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 text-[11px] font-medium transition-colors"
                     title={vi.quiz.openMindmap}
+                    aria-label={vi.quiz.openMindmap}
                   >
                     <Network className="w-3.5 h-3.5" />
                     <span>Sơ đồ tư duy</span>
@@ -155,9 +157,20 @@ export const KnowledgeGapReport: React.FC<Props> = ({
                     onClick={() => navigate('/knowledge')}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-medium transition-colors"
                     title={vi.quiz.openKnowledge}
+                    aria-label={vi.quiz.openKnowledge}
                   >
                     <Globe2 className="w-3.5 h-3.5" />
                     <span>Bách khoa tri thức</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/quiz?tab=flashcard')}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[11px] font-medium transition-colors"
+                    title={vi.quiz.openFlashcard}
+                    aria-label={vi.quiz.openFlashcard}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Flashcard</span>
                   </button>
                 </div>
               </div>
