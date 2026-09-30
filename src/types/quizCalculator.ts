@@ -72,6 +72,24 @@ export interface StoredExamSession extends BaseEntity {
   isSubmitted: boolean
 }
 
+// === Thẻ ghi nhớ & Học ngắt quãng (Flashcard & SRS) ===
+
+export type SRSReviewRating = 'again' | 'hard' | 'good' | 'easy'
+
+export interface Flashcard extends BaseEntity {
+  subjectId: string
+  topicId?: string
+  front: string
+  back: string
+  explanation?: string
+  interval: number // Số ngày đến lần ôn tiếp theo
+  repetition: number // Số lần nhớ thành công liên tiếp
+  easeFactor: number // Hệ số dễ SM-2 (mặc định 2.5)
+  nextReviewDate: Date // Thời điểm ôn tập kế tiếp
+  lastReviewDate?: Date
+  questionId?: string
+}
+
 // === M5: Máy tính công thức & Giải bài tập từng bước ===
 
 export type FormulaCategory = 'math' | 'physics' | 'electronics' | 'custom'

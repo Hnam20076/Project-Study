@@ -7,6 +7,7 @@ import { dataUrlToBlob } from '@/services/noteMigration'
  * Chuyển Blob thành Data URL dạng base64
  */
 export async function blobToDataUrl(blob: Blob): Promise<string> {
+  if (!blob) return ''
   if (typeof FileReader !== 'undefined') {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -271,6 +272,20 @@ const ElectronicComponentSchema = BaseEntitySchema.extend({
   manufacturer: z.string().optional(),
 })
 
+const FlashcardSchema = BaseEntitySchema.extend({
+  subjectId: z.string(),
+  topicId: z.string().optional(),
+  front: z.string(),
+  back: z.string(),
+  explanation: z.string().optional(),
+  interval: z.number(),
+  repetition: z.number(),
+  easeFactor: z.number(),
+  nextReviewDate: z.coerce.date(),
+  lastReviewDate: z.coerce.date().optional(),
+  questionId: z.string().optional(),
+})
+
 const ExportDataSchema = z.object({
   version: z.number(),
   exportedAt: z.string(),
@@ -297,6 +312,7 @@ const ExportDataSchema = z.object({
   formulas: z.array(FormulaSchema).optional(),
   calcHistory: z.array(CalcHistorySchema).optional(),
   electronicComponents: z.array(ElectronicComponentSchema).optional(),
+  flashcards: z.array(FlashcardSchema).optional(),
   noteImages: z.array(z.object({
     id: z.string(),
     pageId: z.string(),
@@ -333,6 +349,7 @@ export async function exportAllData(): Promise<ExportData> {
     calcHistory,
     electronicComponents,
     semesters,
+    flashcards,
     rawNoteImages,
   ] = await Promise.all([
     db.subjects.toArray(),
@@ -352,6 +369,7 @@ export async function exportAllData(): Promise<ExportData> {
     db.calcHistory.toArray(),
     db.electronicComponents.toArray(),
     db.semesters.toArray(),
+    db.flashcards.toArray(),
     db.noteImages.toArray(),
   ])
 
@@ -392,6 +410,7 @@ export async function exportAllData(): Promise<ExportData> {
     formulas,
     calcHistory,
     electronicComponents,
+    flashcards,
   }
 }
 
@@ -410,7 +429,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions, db.noteImages,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
-    db.electronicComponents, db.semesters,
+    db.electronicComponents, db.semesters, db.flashcards,
   ], async () => {
     // Xóa toàn bộ dữ liệu cũ
     await Promise.all([
@@ -432,6 +451,7 @@ export async function importAllData(raw: unknown): Promise<void> {
       db.calcHistory.clear(),
       db.electronicComponents.clear(),
       db.semesters.clear(),
+      db.flashcards.clear(),
     ])
 
     // Ghi dữ liệu mới
@@ -452,6 +472,7 @@ export async function importAllData(raw: unknown): Promise<void> {
     if (parsed.formulas && parsed.formulas.length > 0) await db.formulas.bulkAdd(parsed.formulas as never[])
     if (parsed.calcHistory && parsed.calcHistory.length > 0) await db.calcHistory.bulkAdd(parsed.calcHistory as never[])
     if (parsed.electronicComponents && parsed.electronicComponents.length > 0) await db.electronicComponents.bulkAdd(parsed.electronicComponents as never[])
+    if (parsed.flashcards && parsed.flashcards.length > 0) await db.flashcards.bulkAdd(parsed.flashcards as never[])
 
     // Khôi phục noteImages nếu có trong payload
     if (parsed.noteImages && parsed.noteImages.length > 0) {

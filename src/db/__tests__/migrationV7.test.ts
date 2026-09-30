@@ -12,7 +12,7 @@ describe('Database Schema Migration v7 & Export/Import Backward Compatibility (T
 
   it('successfully opens database with schema v7 and semesters table', async () => {
     expect(db.isOpen()).toBe(true)
-    expect(db.verno).toBe(7)
+    expect(db.verno).toBeGreaterThanOrEqual(7)
     expect(db.tables.some(t => t.name === 'semesters')).toBe(true)
     expect(db.tables.some(t => t.name === 'schedules')).toBe(true)
   })

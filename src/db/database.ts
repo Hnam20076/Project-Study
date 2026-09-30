@@ -19,10 +19,11 @@ import type {
   ElectronicComponent,
   StoredExamSession,
   Semester,
+  Flashcard,
 } from '@/types'
 
 // Phiên bản database - tăng khi thay đổi schema
-const DB_VERSION = 7
+const DB_VERSION = 8
 
 /**
  * Lớp database chính dùng Dexie (IndexedDB wrapper)
@@ -49,6 +50,7 @@ class StudyOSDatabase extends Dexie {
   electronicComponents!: Table<ElectronicComponent>
   examSessions!: Table<StoredExamSession>
   semesters!: Table<Semester>
+  flashcards!: Table<Flashcard>
 
   constructor() {
     super('StudyOSDatabase')
@@ -92,11 +94,17 @@ class StudyOSDatabase extends Dexie {
       // Version 6 migration: khởi tạo bảng examSessions
     })
 
-    this.version(DB_VERSION).stores({
+    this.version(7).stores({
       semesters: 'id, name, isCurrent, isDemo, createdAt',
       schedules: 'id, className, dayOfWeek, classGroupCode, isDemo, createdAt',
     }).upgrade(() => {
       // Version 7 migration: khởi tạo bảng semesters và bổ sung index classGroupCode cho schedules
+    })
+
+    this.version(DB_VERSION).stores({
+      flashcards: 'id, subjectId, topicId, nextReviewDate, isDemo, createdAt',
+    }).upgrade(() => {
+      // Version 8 migration: khởi tạo bảng flashcards cho module học tập SRS
     })
   }
 }

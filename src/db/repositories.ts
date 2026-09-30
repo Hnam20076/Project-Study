@@ -23,7 +23,10 @@ import type {
   ComponentCategory,
   StoredExamSession,
   Semester,
+  Flashcard,
+  SRSReviewRating,
 } from '@/types'
+import { calculateSRS } from '@/services/srsAlgorithm'
 
 // Helper tạo timestamp hiện tại
 const now = () => new Date()
@@ -722,7 +725,7 @@ export async function deleteAllDemoData(): Promise<void> {
     db.notebooks, db.sections, db.pages, db.noteVersions, db.noteImages,
     db.mindmaps, db.knowledgeNodes, db.knowledgeEdges,
     db.questions, db.examAttempts, db.formulas, db.calcHistory,
-    db.electronicComponents, db.semesters,
+    db.electronicComponents, db.semesters, db.flashcards,
   ], async () => {
     await subjectRepo.deleteDemoData()
     await topicRepo.deleteDemoData()
@@ -740,6 +743,7 @@ export async function deleteAllDemoData(): Promise<void> {
     await formulaRepo.deleteDemoData()
     await componentRepo.deleteDemoData()
     await semesterRepo.deleteDemoData()
+    await flashcardRepo.deleteDemoData()
 
     // noteVersions và noteImages của demo pages sẽ bị orphan - dọn dẹp
     const remainingPageIds = await db.pages.toCollection().primaryKeys()
@@ -850,3 +854,104 @@ export const semesterRepo = {
     await db.semesters.filter(item => item.isDemo === true).delete()
   },
 }
+
+// === Flashcard Repository (Phase S4 - SRS) ===
+export const flashcardRepo = {
+  async getAll(): Promise<Flashcard[]> {
+    const list = await db.flashcards.toArray()
+    return list.sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime())
+  },
+
+  async getBySubject(subjectId: string): Promise<Flashcard[]> {
+    const list = await db.flashcards.where('subjectId').equals(subjectId).toArray()
+    return list.sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime())
+  },
+
+  async getDueCards(subjectId?: string): Promise<Flashcard[]> {
+    const nowTime = Date.now()
+    let list: Flashcard[]
+    if (subjectId && subjectId !== 'all') {
+      list = await db.flashcards.where('subjectId').equals(subjectId).toArray()
+    } else {
+      list = await db.flashcards.toArray()
+    }
+    return list
+      .filter(card => new Date(card.nextReviewDate).getTime() <= nowTime)
+      .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime())
+  },
+
+  async getById(id: string): Promise<Flashcard | undefined> {
+    return db.flashcards.get(id)
+  },
+
+  async create(data: Omit<Flashcard, 'id' | 'createdAt' | 'updatedAt'>): Promise<Flashcard> {
+    const card: Flashcard = {
+      ...baseFields(),
+      ...data,
+      interval: data.interval ?? 0,
+      repetition: data.repetition ?? 0,
+      easeFactor: data.easeFactor ?? 2.5,
+      nextReviewDate: data.nextReviewDate ?? now(),
+    }
+    await db.flashcards.add(card)
+    return card
+  },
+
+  async update(id: string, data: Partial<Flashcard>): Promise<void> {
+    await db.flashcards.update(id, { ...data, updatedAt: now() })
+  },
+
+  async reviewCard(id: string, rating: SRSReviewRating): Promise<Flashcard | undefined> {
+    const card = await db.flashcards.get(id)
+    if (!card) return undefined
+    const srs = calculateSRS(card, rating)
+    const updated: Flashcard = {
+      ...card,
+      interval: srs.interval,
+      repetition: srs.repetition,
+      easeFactor: srs.easeFactor,
+      nextReviewDate: srs.nextReviewDate,
+      lastReviewDate: now(),
+      updatedAt: now(),
+    }
+    await db.flashcards.put(updated)
+    return updated
+  },
+
+  async createFromQuestion(question: Question): Promise<Flashcard> {
+    let backText = ''
+    if (question.type === 'single' || question.type === 'multiple') {
+      const correctIds = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer]
+      const correctOpts = question.options?.filter(o => correctIds.includes(o.id)).map(o => o.text) || []
+      backText = correctOpts.join(', ')
+    } else {
+      backText = String(question.correctAnswer)
+    }
+
+    const card: Flashcard = {
+      ...baseFields(),
+      subjectId: question.subjectId,
+      topicId: question.topicId,
+      front: question.prompt,
+      back: backText,
+      explanation: question.explanation,
+      interval: 0,
+      repetition: 0,
+      easeFactor: 2.5,
+      nextReviewDate: now(),
+      questionId: question.id,
+      isDemo: question.isDemo,
+    }
+    await db.flashcards.add(card)
+    return card
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.flashcards.delete(id)
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.flashcards.filter(c => c.isDemo === true).delete()
+  },
+}
+
