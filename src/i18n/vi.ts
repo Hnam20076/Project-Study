@@ -655,6 +655,8 @@ export const vi = {
     createdFlashcardSuccess: 'Đã tạo flashcard thành công!',
     noteNotebook: 'Sổ ghi chép',
     noteSection: 'Mục ghi chú',
+    noteTitle: 'Tiêu đề ghi chú',
+    noteContent: 'Nội dung ngắn...',
     flashcardFront: 'Mặt trước (câu hỏi/thuật ngữ)',
     flashcardBack: 'Mặt sau (câu trả lời/định nghĩa)',
   },

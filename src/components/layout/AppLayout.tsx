@@ -1,13 +1,18 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { MobileBottomNav } from './MobileBottomNav'
+import { QuickCaptureModal } from '../QuickCaptureModal'
 import { useUIStore } from '@/stores/uiStore'
-import { useEffect } from 'react'
+import { startReminderScheduler } from '@/services/reminderService'
+import { vi } from '@/i18n/vi'
+import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 
 export function AppLayout() {
   const { sidebarCollapsed } = useUIStore()
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false)
 
-  // Đăng ký phím tắt toàn cục
+  // Đăng ký phím tắt toàn cục & scheduler
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       // Ctrl+K = Command palette
@@ -15,9 +20,21 @@ export function AppLayout() {
         e.preventDefault()
         useUIStore.getState().openCommandPalette()
       }
+      // Alt+N = Quick Capture
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        setQuickCaptureOpen(true)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+
+    // Khởi động trình nhắc nhở định kỳ
+    const stopReminders = startReminderScheduler(60000)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      stopReminders()
+    }
   }, [])
 
   return (
@@ -39,6 +56,23 @@ export function AppLayout() {
         </div>
       </main>
 
+      {/* Floating Action Button (Quick Capture) */}
+      <button
+        type="button"
+        onClick={() => setQuickCaptureOpen(true)}
+        className="fixed bottom-20 md:bottom-6 right-6 z-30 w-12 h-12 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white shadow-xl shadow-primary-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        aria-label={vi.quickCapture.buttonAria}
+        title="Tạo nhanh (Alt+N)"
+      >
+        <Plus className="w-6 h-6 stroke-[2.5]" />
+      </button>
+
+      {/* Quick Capture Modal */}
+      <QuickCaptureModal
+        isOpen={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+      />
+
       {/* Mobile bottom navigation */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-40">
         <MobileBottomNav />
@@ -52,3 +86,4 @@ export function AppLayout() {
     </div>
   )
 }
+
