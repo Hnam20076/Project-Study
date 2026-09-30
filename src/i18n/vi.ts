@@ -225,6 +225,11 @@ export const vi = {
       table: 'Bảng',
       image: 'Ảnh',
       formula: 'Công thức',
+      inlineMath: 'Toán Inline (Σ)',
+      blockMath: 'Khối Toán (∑)',
+      imageOptimizing: 'Đang tối ưu và lưu ảnh...',
+      imageInsertSuccess: 'Đã chèn ảnh thành công',
+      imageInsertFailed: 'Không thể xử lý ảnh',
     },
   },
 

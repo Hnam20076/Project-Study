@@ -399,7 +399,9 @@ export const imageRepo = {
       blob,
       mimeType,
       fileName,
+      size: blob.size,
       createdAt: now(),
+      updatedAt: now(),
     }
     await db.noteImages.add(image)
     return image
@@ -411,6 +413,18 @@ export const imageRepo = {
 
   async getByPage(pageId: string): Promise<NoteImage[]> {
     return db.noteImages.where('pageId').equals(pageId).toArray()
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.noteImages.delete(id)
+  },
+
+  async deleteByPage(pageId: string): Promise<void> {
+    await db.noteImages.where('pageId').equals(pageId).delete()
+  },
+
+  async deleteDemoData(): Promise<void> {
+    await db.noteImages.filter(item => item.isDemo === true).delete()
   },
 }
 

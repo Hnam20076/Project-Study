@@ -6,7 +6,6 @@ import TextStyle from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Table from '@tiptap/extension-table'
@@ -20,12 +19,14 @@ import Typography from '@tiptap/extension-typography'
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   Code, Heading1, Heading2, Heading3, List, ListOrdered,
-  CheckSquare, Quote, Code2, Table as TableIcon,
+  CheckSquare, Quote, Code2, Table as TableIcon, Image as ImageIcon,
   Undo, Redo, History,
   RotateCw, Check, AlertTriangle
 } from 'lucide-react'
-import DOMPurify from 'dompurify'
-import { pageRepo, versionRepo } from '@/db/repositories'
+import { pageRepo, versionRepo, imageRepo } from '@/db/repositories'
+import { optimizeImage } from '@/services/imageOptimizer'
+import { sanitizeHTML } from '@/lib/sanitize'
+import { CustomImage } from './editor/CustomImage'
 import { vi } from '@/i18n/vi'
 import { debounce, formatTime, countWordsInHTML } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -49,6 +50,7 @@ export function PageEditor({ pageId }: Props) {
   const [showVersions, setShowVersions] = useState(false)
   const [versions, setVersions] = useState<NoteVersion[]>([])
   const titleRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const pendingRef = useRef<{ content: string; title: string; dirty: boolean }>({
     content: '',
     title: '',
@@ -74,7 +76,7 @@ export function PageEditor({ pageId }: Props) {
     const { content, title: curTitle } = pendingRef.current
     try {
       setSaveStatus('saving')
-      const clean = DOMPurify.sanitize(content)
+      const clean = sanitizeHTML(content)
       const wordCount = countWordsInHTML(clean)
       await pageRepo.update(pageId, { content: clean, title: curTitle, wordCount })
       await versionRepo.save(pageId, clean, wordCount)
@@ -93,7 +95,7 @@ export function PageEditor({ pageId }: Props) {
     debounce(async (id: string, content: string, titleStr: string) => {
       try {
         setSaveStatus('saving')
-        const clean = DOMPurify.sanitize(content)
+        const clean = sanitizeHTML(content)
         const wordCount = countWordsInHTML(clean)
         await pageRepo.update(id, { content: clean, title: titleStr, wordCount })
         await versionRepo.save(id, clean, wordCount)
@@ -136,6 +138,8 @@ export function PageEditor({ pageId }: Props) {
     }
   }, [flushPending])
 
+  const handleInsertImageRef = useRef<(file: File | Blob) => Promise<void>>()
+
   // Editor TipTap
   const editor = useEditor({
     extensions: [
@@ -153,7 +157,7 @@ export function PageEditor({ pageId }: Props) {
         openOnClick: false,
         HTMLAttributes: { class: 'prose-link' },
       }),
-      Image.configure({
+      CustomImage.configure({
         inline: false,
         allowBase64: true,
       }),
@@ -177,7 +181,7 @@ export function PageEditor({ pageId }: Props) {
     },
     editorProps: {
       handlePaste: (_view, event) => {
-        // Xử lý paste ảnh
+        // Xử lý paste ảnh với tối ưu Canvas và IndexedDB
         const items = event.clipboardData?.items
         if (!items) return false
 
@@ -185,37 +189,23 @@ export function PageEditor({ pageId }: Props) {
           if (item.type.startsWith('image/')) {
             event.preventDefault()
             const file = item.getAsFile()
-            if (!file) continue
-
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const base64 = e.target?.result as string
-              if (base64) {
-                editor?.chain().focus().setImage({ src: base64 }).run()
-              }
+            if (file) {
+              handleInsertImageRef.current?.(file)
             }
-            reader.readAsDataURL(file)
             return true
           }
         }
         return false
       },
       handleDrop: (_view, event) => {
-        // Xử lý drop ảnh
+        // Xử lý drop ảnh với tối ưu Canvas và IndexedDB
         const files = event.dataTransfer?.files
         if (!files) return false
 
         for (const file of Array.from(files)) {
           if (file.type.startsWith('image/')) {
             event.preventDefault()
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const base64 = e.target?.result as string
-              if (base64) {
-                editor?.chain().focus().setImage({ src: base64 }).run()
-              }
-            }
-            reader.readAsDataURL(file)
+            handleInsertImageRef.current?.(file)
             return true
           }
         }
@@ -223,6 +213,29 @@ export function PageEditor({ pageId }: Props) {
       },
     },
   }, [page?.content]) // Tái tạo editor khi page thay đổi
+
+  const handleInsertImageFile = useCallback(async (file: File | Blob) => {
+    if (!editor || !pageId) return
+    const toastId = toast.loading(vi.notes.editor.imageOptimizing)
+    try {
+      const optimized = await optimizeImage(file)
+      const record = await imageRepo.save(
+        pageId,
+        optimized.blob,
+        optimized.mimeType,
+        optimized.fileName
+      )
+      editor.chain().focus().setImage({ src: `idb://${record.id}`, alt: record.fileName || '' }).run()
+      toast.success(vi.notes.editor.imageInsertSuccess, { id: toastId })
+    } catch (err) {
+      console.error('Failed to insert image:', err)
+      toast.error(vi.notes.editor.imageInsertFailed, { id: toastId })
+    }
+  }, [editor, pageId])
+
+  useEffect(() => {
+    handleInsertImageRef.current = handleInsertImageFile
+  }, [handleInsertImageFile])
 
   // Load versions
   async function loadVersions() {
@@ -235,7 +248,7 @@ export function PageEditor({ pageId }: Props) {
   async function restoreVersion(content: string) {
     if (!editor) return
     editor.commands.setContent(content)
-    await pageRepo.update(pageId, { content: DOMPurify.sanitize(content) })
+    await pageRepo.update(pageId, { content: sanitizeHTML(content) })
     setSavedAt(new Date())
     setShowVersions(false)
     toast.success('Đã khôi phục phiên bản')
@@ -404,10 +417,33 @@ export function PageEditor({ pageId }: Props) {
             <ToolbarBtn
               onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
               title={vi.notes.editor.table}
+              aria-label={vi.notes.editor.table}
             >
               <TableIcon className="w-3.5 h-3.5" />
             </ToolbarBtn>
+            <ToolbarBtn
+              onClick={() => fileInputRef.current?.click()}
+              title={vi.notes.editor.image}
+              aria-label={vi.notes.editor.image}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+            </ToolbarBtn>
           </ToolbarGroup>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            aria-label="Tải lên ảnh ghi chú"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                handleInsertImageFile(file)
+                e.target.value = ''
+              }
+            }}
+          />
 
           {/* Spacer */}
           <div className="flex-1" />

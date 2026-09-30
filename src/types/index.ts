@@ -118,7 +118,10 @@ export interface NoteImage {
   blob: Blob
   mimeType: string
   fileName?: string
+  size?: number
+  isDemo?: boolean
   createdAt: Date
+  updatedAt?: Date
 }
 
 // === Theme ===
