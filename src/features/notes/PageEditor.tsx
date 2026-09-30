@@ -439,7 +439,7 @@ export function PageEditor({ pageId }: Props) {
           {/* Công thức toán KaTeX */}
           <ToolbarGroup>
             <ToolbarBtn
-              onClick={() => editor?.chain().focus().insertInlineMath('x').run()}
+              onClick={() => editor?.chain().focus().insertInlineMath('').run()}
               title={vi.notes.editor.inlineMath}
               aria-label={vi.notes.editor.inlineMath}
             >
@@ -449,7 +449,7 @@ export function PageEditor({ pageId }: Props) {
               </div>
             </ToolbarBtn>
             <ToolbarBtn
-              onClick={() => editor?.chain().focus().insertBlockMath('E = mc^2').run()}
+              onClick={() => editor?.chain().focus().insertBlockMath('').run()}
               title={vi.notes.editor.blockMath}
               aria-label={vi.notes.editor.blockMath}
             >
@@ -600,18 +600,21 @@ function ToolbarBtn({
   active,
   disabled,
   title,
+  'aria-label': ariaLabel,
 }: {
   children: React.ReactNode
   onClick?: () => void
   active?: boolean
   disabled?: boolean
   title?: string
+  'aria-label'?: string
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel || title}
       className={cn(
         'p-1.5 rounded transition-colors',
         active

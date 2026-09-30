@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ChevronRight, ChevronDown, BookOpen,
@@ -30,6 +30,19 @@ function NotebookTree({
   const notebooks = useLiveQuery(() => notebookRepo.getAll(), []) ?? []
   const allSections = useLiveQuery(() => getAllSections(), []) ?? []
   const allPages = useLiveQuery(() => pageRepo.getRecent(100), []) ?? []
+
+  // Tự động mở rộng cây sổ tay và mục khi tải xong
+  useEffect(() => {
+    if (notebooks.length > 0 && expandedNotebooks.size === 0) {
+      setExpandedNotebooks(new Set(notebooks.map(n => n.id)))
+    }
+  }, [notebooks])
+
+  useEffect(() => {
+    if (allSections.length > 0 && expandedSections.size === 0) {
+      setExpandedSections(new Set(allSections.map(s => s.id)))
+    }
+  }, [allSections])
 
   // Lọc theo search
   const filteredPages = searchQuery
@@ -421,6 +434,14 @@ function NotesContent() {
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   const [sidebarWidth, setSidebarWidth] = useState(260)
   const [isResizing, setIsResizing] = useState(false)
+
+  // Tự động mở trang gần nhất khi chưa chọn trang nào (phản ứng với useLiveQuery)
+  const recentPages = useLiveQuery(() => pageRepo.getRecent(1), [])
+  useEffect(() => {
+    if (!selectedPageId && recentPages && recentPages.length > 0) {
+      setSelectedPageId(recentPages[0].id)
+    }
+  }, [selectedPageId, recentPages])
 
   // Resize sidebar
   const startResize = useCallback((e: React.MouseEvent) => {

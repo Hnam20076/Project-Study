@@ -71,9 +71,10 @@ export function MathView({ node, updateAttributes, deleteNode, selected }: NodeV
   return (
     <NodeViewWrapper
       as={isBlock ? 'div' : 'span'}
-      className={`math-node-wrapper relative inline-block group select-none ${
+      className={`math-node-wrapper ${isBlock ? 'math-block' : 'math-inline'} relative inline-block group select-none ${
         isBlock ? 'w-full my-4 text-center block' : 'mx-1 align-baseline'
       } ${selected ? 'ring-2 ring-primary-500 rounded' : ''}`}
+      data-latex={latex}
     >
       {isEditing ? (
         <div
@@ -236,7 +237,7 @@ export const InlineMathNode = Node.create({
   addCommands() {
     return {
       insertInlineMath:
-        (latex = 'x') =>
+        (latex = '') =>
         ({ commands }) => {
           return commands.insertContent({
             type: this.name,
@@ -299,7 +300,7 @@ export const BlockMathNode = Node.create({
   addCommands() {
     return {
       insertBlockMath:
-        (latex = 'E = mc^2') =>
+        (latex = '') =>
         ({ commands }) => {
           return commands.insertContent({
             type: this.name,

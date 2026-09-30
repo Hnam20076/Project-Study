@@ -298,7 +298,10 @@ export const pageRepo = {
   },
 
   async getRecent(limit = 10): Promise<NotePage[]> {
-    return db.pages.orderBy('updatedAt').reverse().limit(limit).toArray()
+    const list = await db.pages.toArray()
+    return list
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, limit)
   },
 
   async searchFullText(query: string): Promise<NotePage[]> {
