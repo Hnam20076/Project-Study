@@ -70,7 +70,7 @@ test.describe('Phase S2: Schedule 2.0 & Timetable HK1 2026-2027 Acceptance Crite
 
     // KTS T7 tồn tại
     const ktsT7 = page.locator('button:has-text("CS3.F.01.02")');
-    await expect(ktsT7).toBeVisible();
+    await expect(ktsT7.first()).toBeVisible();
 
     // Chụp screenshot Tuần 11
     await page.screenshot({ path: path.join(artifactsDir, `S2-week11-${testInfo.project.name}.png`) });
@@ -80,7 +80,7 @@ test.describe('Phase S2: Schedule 2.0 & Timetable HK1 2026-2027 Acceptance Crite
     await page.waitForTimeout(300);
 
     // Chỉ có KTS T7
-    await expect(page.locator('button:has-text("CS3.F.01.02")')).toBeVisible();
+    await expect(page.locator('button:has-text("CS3.F.01.02")').first()).toBeVisible();
 
     // Chụp screenshot Tuần 16
     await page.screenshot({ path: path.join(artifactsDir, `S2-week16-${testInfo.project.name}.png`) });

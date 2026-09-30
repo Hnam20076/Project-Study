@@ -565,6 +565,16 @@ function ScheduleContent() {
   const initialWeek = dateToWeekNumber(new Date(), activeSemester) ?? 1
   const [selectedWeek, setSelectedWeek] = useState<number>(initialWeek)
 
+  // Tự động kiểm tra và nạp TKB HK1 2026-2027 nếu chưa có dữ liệu chuẩn
+  useEffect(() => {
+    scheduleRepo.getAll().then(all => {
+      const hasHK1 = all.some(s => s.tags?.includes('HK1-2026-2027'))
+      if (!hasHK1) {
+        loadTimetableHK1_2026_2027().catch(console.error)
+      }
+    })
+  }, [])
+
   // Cập nhật weekStart dựa theo selectedWeek
   const { start: weekStart, end: weekEnd } = getWeekDateRange(activeSemester.startDate, selectedWeek)
 
@@ -819,7 +829,7 @@ function ScheduleContent() {
               title={vi.schedule.loadHK1Timetable}
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{vi.schedule.loadHK1Timetable}</span>
+              <span className="hidden sm:inline">{vi.schedule.loadHK1Timetable}</span>
             </button>
 
             <button onClick={handleNewClass} aria-label={vi.schedule.addClass} className="btn-primary">

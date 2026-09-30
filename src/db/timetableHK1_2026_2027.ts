@@ -141,46 +141,67 @@ export const TIMETABLE_HK1_2026_2027: readonly Omit<ScheduleEntry, 'id' | 'creat
   },
 ] as const
 
+let loadPromise: Promise<{ added: number; skipped: number }> | null = null
+
 /**
  * Hàm nạp thời khóa biểu HK1 2026-2027 đảm bảo tính Idempotent:
  * - Không tạo bản ghi trùng theo (classGroupCode + dayOfWeek + periodStart)
  * - Tự động thiết lập học kỳ HK1 2026-2027 nếu chưa có
+ * - Ngăn chặn race condition khi gọi song song
  */
 export async function loadTimetableHK1_2026_2027(): Promise<{ added: number; skipped: number }> {
-  // 1. Đảm bảo học kỳ HK1 2026-2027 tồn tại
-  const existingSemesters = await db.semesters.toArray()
-  let hk1 = existingSemesters.find(s => s.name === HK1_2026_2027_CONFIG.name)
-  if (!hk1) {
-    hk1 = await semesterRepo.create({
-      name: HK1_2026_2027_CONFIG.name,
-      startDate: HK1_2026_2027_CONFIG.startDate,
-      weeksCount: HK1_2026_2027_CONFIG.weeksCount,
-      isCurrent: true,
-      tags: ['HK1-2026-2027'],
-    })
-  } else if (!hk1.isCurrent) {
-    await semesterRepo.setCurrent(hk1.id)
+  if (loadPromise) {
+    return loadPromise
   }
 
-  // 2. Nạp dữ liệu các tiết học không trùng lặp
-  const existingSchedules = await db.schedules.toArray()
-  let added = 0
-  let skipped = 0
+  loadPromise = (async () => {
+    try {
+      // 1. Đảm bảo học kỳ HK1 2026-2027 tồn tại
+      const existingSemesters = await db.semesters.toArray()
+      let hk1 = existingSemesters.find(s => s.name === HK1_2026_2027_CONFIG.name)
+      if (!hk1) {
+        hk1 = await semesterRepo.create({
+          name: HK1_2026_2027_CONFIG.name,
+          startDate: HK1_2026_2027_CONFIG.startDate,
+          weeksCount: HK1_2026_2027_CONFIG.weeksCount,
+          isCurrent: true,
+          tags: ['HK1-2026-2027'],
+        })
+      } else if (!hk1.isCurrent) {
+        await semesterRepo.setCurrent(hk1.id)
+      }
 
-  for (const item of TIMETABLE_HK1_2026_2027) {
-    const isDuplicate = existingSchedules.some(
-      s => s.classGroupCode === item.classGroupCode &&
-           s.dayOfWeek === item.dayOfWeek &&
-           s.periodStart === item.periodStart
-    )
+      // 2. Dọn dẹp các tiết học demo cũ (nếu có) để nhường chỗ cho TKB HK1 2026-2027 chính thức
+      const hasDemo = await db.schedules.filter(s => s.isDemo === true).count()
+      if (hasDemo > 0) {
+        await scheduleRepo.deleteDemoData()
+      }
 
-    if (isDuplicate) {
-      skipped++
-    } else {
-      await scheduleRepo.create(item)
-      added++
+      // 3. Nạp dữ liệu các tiết học không trùng lặp
+      let added = 0
+      let skipped = 0
+
+      for (const item of TIMETABLE_HK1_2026_2027) {
+        const currentSchedules = await db.schedules.toArray()
+        const isDuplicate = currentSchedules.some(
+          s => s.classGroupCode === item.classGroupCode &&
+               s.dayOfWeek === item.dayOfWeek &&
+               s.periodStart === item.periodStart
+        )
+
+        if (isDuplicate) {
+          skipped++
+        } else {
+          await scheduleRepo.create(item)
+          added++
+        }
+      }
+
+      return { added, skipped }
+    } finally {
+      loadPromise = null
     }
-  }
+  })()
 
-  return { added, skipped }
+  return loadPromise
 }
