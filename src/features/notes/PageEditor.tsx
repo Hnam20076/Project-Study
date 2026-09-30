@@ -20,6 +20,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   Code, Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Quote, Code2, Table as TableIcon, Image as ImageIcon,
+  Sigma,
   Undo, Redo, History,
   RotateCw, Check, AlertTriangle
 } from 'lucide-react'
@@ -27,6 +28,7 @@ import { pageRepo, versionRepo, imageRepo } from '@/db/repositories'
 import { optimizeImage } from '@/services/imageOptimizer'
 import { sanitizeHTML } from '@/lib/sanitize'
 import { CustomImage } from './editor/CustomImage'
+import { InlineMathNode, BlockMathNode } from './editor/MathExtension'
 import { vi } from '@/i18n/vi'
 import { debounce, formatTime, countWordsInHTML } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -161,6 +163,8 @@ export function PageEditor({ pageId }: Props) {
         inline: false,
         allowBase64: true,
       }),
+      InlineMathNode,
+      BlockMathNode,
       TaskList,
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: true }),
@@ -427,6 +431,32 @@ export function PageEditor({ pageId }: Props) {
               aria-label={vi.notes.editor.image}
             >
               <ImageIcon className="w-3.5 h-3.5" />
+            </ToolbarBtn>
+          </ToolbarGroup>
+
+          <div className="w-px h-5 bg-slate-200 dark:bg-dark-border mx-1" />
+
+          {/* Công thức toán KaTeX */}
+          <ToolbarGroup>
+            <ToolbarBtn
+              onClick={() => editor?.chain().focus().insertInlineMath('x').run()}
+              title={vi.notes.editor.inlineMath}
+              aria-label={vi.notes.editor.inlineMath}
+            >
+              <div className="flex items-center gap-0.5 text-xs font-semibold px-0.5">
+                <Sigma className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Inline</span>
+              </div>
+            </ToolbarBtn>
+            <ToolbarBtn
+              onClick={() => editor?.chain().focus().insertBlockMath('E = mc^2').run()}
+              title={vi.notes.editor.blockMath}
+              aria-label={vi.notes.editor.blockMath}
+            >
+              <div className="flex items-center gap-0.5 text-xs font-bold text-primary-600 dark:text-primary-400 px-0.5">
+                <Sigma className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Block</span>
+              </div>
             </ToolbarBtn>
           </ToolbarGroup>
 
